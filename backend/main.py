@@ -8,6 +8,7 @@ from career_recommender.routes import router as career_router
 from resume_builder.routes import router as resume_router
 from learning_guide.routes import router as learning_router
 from interview_prep.routes import router as interview_router
+from user_profile.routes import router as profile_router
 
 app = FastAPI(
     title="SkillSphere API",
@@ -35,6 +36,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router, prefix="", tags=["Authentication"])
+app.include_router(profile_router, prefix="", tags=["User Profile"])
 app.include_router(career_router, prefix="/api/career", tags=["Career Recommender"])
 app.include_router(resume_router, prefix="/api/resume", tags=["Resume Builder"])
 app.include_router(learning_router, prefix="/api/learning", tags=["Learning Guide"])

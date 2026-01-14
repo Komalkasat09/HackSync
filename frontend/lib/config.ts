@@ -48,6 +48,13 @@ export const API_ENDPOINTS = {
     ANALYZE_VIDEO: `${API_BASE_URL}/ai-detection/analyze-video`,
     STATS: `${API_BASE_URL}/ai-detection/stats`,
   },
+  PROFILE: {
+    GET: `${API_BASE_URL}/profile`,
+    UPDATE: `${API_BASE_URL}/profile`,
+    UPLOAD_RESUME: `${API_BASE_URL}/profile/resume/upload`,
+    GET_RESUME: `${API_BASE_URL}/profile/resume`,
+    DELETE_RESUME: `${API_BASE_URL}/profile/resume`,
+  },
   CHATBOT: {
     CHAT: `${API_BASE_URL}/chatbot/chat`,
     CONVERSATIONS: `${API_BASE_URL}/chatbot/conversations`,

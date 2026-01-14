@@ -10,10 +10,11 @@ from config import get_database
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-# Security
-SECRET_KEY = secrets.token_urlsafe(32)
+# Security - Use a persistent secret key (you should store this in environment variables)
+# For now, using a fixed key. In production, use: SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = "your-secret-key-change-this-in-production-make-it-long-and-secure"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
