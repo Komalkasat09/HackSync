@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* SHINY BLUE ACCENT - Brighter blue with glow effects */
+  --shiny-blue: #0a7fff;
+  --shiny-blue-light: #1a8fff;
+  --shiny-blue-dark: #0966d9;
+  --shiny-blue-glow: rgba(10, 127, 255, 0.4);
+  --shiny-blue-glow-strong: rgba(10, 127, 255, 0.6);
+  
+  /* LIGHT MODE - Black & White + Shiny Blue */
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: rgba(255, 255, 255, 0.8);
+  --card-border: rgba(0, 0, 0, 0.08);
+  --primary: var(--shiny-blue);
+  --primary-foreground: #ffffff;
+  
+  /* Glass Effect */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  
+  /* Secondary Button */
+  --secondary-bg: transparent;
+  --secondary-text: #0a0a0a;
+  --secondary-border: rgba(0, 0, 0, 0.15);
+}
+
+:root.dark {
+  /* DARK MODE - Black & White + Shiny Blue */
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: rgba(20, 20, 20, 0.8);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --primary: var(--shiny-blue);
+  --primary-foreground: #ffffff;
+
+  /* Glass Effect */
+  --glass-bg: rgba(20, 20, 20, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  
+  /* Secondary Button */
+  --secondary-bg: transparent;
+  --secondary-text: #fafafa;
+  --secondary-border: rgba(255, 255, 255, 0.15);
+}
+
+/* Shiny Blue Glow Animation */
+@keyframes shiny-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--shiny-blue-glow),
+                0 0 40px var(--shiny-blue-glow),
+                0 0 60px var(--shiny-blue-glow-strong),
+                inset 0 0 20px var(--shiny-blue-glow);
+  }
+  50% {
+    box-shadow: 0 0 30px var(--shiny-blue-glow-strong),
+                0 0 60px var(--shiny-blue-glow-strong),
+                0 0 90px var(--shiny-blue-glow-strong),
+                inset 0 0 30px var(--shiny-blue-glow-strong);
+  }
+}
+
+/* Shiny Blue Text Glow */
+.shiny-blue-text {
+  color: var(--shiny-blue);
+  text-shadow: 0 0 10px var(--shiny-blue-glow),
+               0 0 20px var(--shiny-blue-glow),
+               0 0 30px var(--shiny-blue-glow-strong);
+}
+
+/* Shiny Blue Background with Glow */
+.shiny-blue-bg {
+  background: linear-gradient(135deg, var(--shiny-blue) 0%, var(--shiny-blue-light) 50%, var(--shiny-blue-dark) 100%);
+  box-shadow: 0 0 20px var(--shiny-blue-glow),
+              0 0 40px var(--shiny-blue-glow),
+              0 0 60px var(--shiny-blue-glow-strong),
+              inset 0 0 20px rgba(255, 255, 255, 0.2);
+  animation: shiny-glow 3s ease-in-out infinite;
+}
+
+/* Shiny Blue Border with Glow */
+.shiny-blue-border {
+  border: 2px solid var(--shiny-blue);
+  box-shadow: 0 0 10px var(--shiny-blue-glow),
+              0 0 20px var(--shiny-blue-glow),
+              inset 0 0 10px var(--shiny-blue-glow);
+}
+
+/* --- CONFIGURATION --- */
+@theme {
+  /* Map CSS variables to Tailwind Utilities */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--card-border);
+  --color-primary: var(--primary);
+  
+  /* ⬇️ THIS WAS MISSING causing the error */
+  --color-primary-foreground: var(--primary-foreground);
+
+  --animate-shine: shine 8s linear infinite;
+  @keyframes shine {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* --- UTILITIES --- */
+@utility auth-card {
+  @apply bg-[var(--glass-bg)] backdrop-blur-xl border border-[var(--glass-border)] rounded-2xl p-8 shadow-2xl w-full max-w-md relative z-10;
+}
+
+@utility input-field {
+  @apply w-full bg-background border border-border rounded-lg px-4 py-3 text-sm text-foreground placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all;
+}
+
+/* Typing animation for streaming messages */
+.typing-animation {
+  animation: typing 0.1s ease-in-out;
+}
+
+@keyframes typing {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@utility btn-primary {
+  /* Now 'text-primary-foreground' works because we mapped it above */
+  @apply w-full bg-primary hover:opacity-90 text-primary-foreground font-semibold py-3 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer;
+}
+
+@utility btn-google {
+  @apply w-full bg-transparent border border-border hover:bg-foreground/5 text-foreground font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer;
+}
+
+@utility btn-secondary {
+  @apply bg-[var(--secondary-bg)] border border-[var(--secondary-border)] text-[var(--secondary-text)] hover:bg-foreground/5 px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all cursor-pointer;
+}
+
+@utility gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary to-primary/80 font-bold;
+}
