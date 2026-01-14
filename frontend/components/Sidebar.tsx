@@ -11,12 +11,10 @@ import {
   Briefcase,     // Interview Prep
   LogOut, 
   ShieldCheck,
-  User,
-  Settings
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 
 const menuItems = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard, shortText: "Home" },
@@ -53,6 +51,12 @@ export function Sidebar() {
           });
         });
       }
+    } else {
+      // Hide indicator if no menu item matches (e.g., on profile page)
+      setIndicatorStyle({
+        top: 0,
+        height: 0,
+      });
     }
   }, [pathname]);
 
@@ -124,38 +128,18 @@ export function Sidebar() {
         {/* PROFILE & LOGOUT */}
         <div className="p-4 border-t border-border space-y-2">
           {/* Profile Button */}
-          <div className="relative">
-            <DropdownMenuPrimitive.Root>
-              <DropdownMenuPrimitive.Trigger asChild>
-                <button className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-foreground/5 rounded-lg transition-all duration-300 ease-in-out transform hover:scale-[1.02] active:scale-[0.98]">
-                  <User className="w-5 h-5 shrink-0" />
-                  <span>Profile</span>
-                </button>
-              </DropdownMenuPrimitive.Trigger>
-              
-              <DropdownMenuPrimitive.Portal>
-                <DropdownMenuPrimitive.Content
-                  align="end"
-                  className="z-50 min-w-[200px] overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-xl p-1 text-foreground shadow-xl relative"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-foreground/5 via-transparent to-foreground/10 pointer-events-none rounded-xl" />
-                  <DropdownMenuPrimitive.Item
-                    className="relative flex select-none items-center gap-3 rounded-lg px-3 py-2.5 text-sm outline-none transition-colors hover:bg-foreground/5 focus:bg-foreground/5 cursor-pointer z-10"
-                  >
-                    <User className="w-4 h-4" />
-                    <span>Your Account</span>
-                  </DropdownMenuPrimitive.Item>
-                  
-                  <DropdownMenuPrimitive.Item
-                    className="relative flex select-none items-center gap-3 rounded-lg px-3 py-2.5 text-sm outline-none transition-colors hover:bg-foreground/5 focus:bg-foreground/5 cursor-pointer z-10"
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span>Settings</span>
-                  </DropdownMenuPrimitive.Item>
-                </DropdownMenuPrimitive.Content>
-              </DropdownMenuPrimitive.Portal>
-            </DropdownMenuPrimitive.Root>
-          </div>
+          <Link 
+            href="/dashboard/profile"
+            className={cn(
+              "flex items-center gap-3 w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-300 ease-in-out transform hover:scale-[1.02] active:scale-[0.98]",
+              pathname === "/dashboard/profile"
+                ? "bg-foreground text-background"
+                : "text-foreground/70 hover:text-foreground hover:bg-foreground/5"
+            )}
+          >
+            <User className="w-5 h-5 shrink-0" />
+            <span>Profile</span>
+          </Link>
           
           {/* Logout Button */}
           <button 

@@ -76,6 +76,7 @@ async def signup(user: UserSignup):
     user_data = {
         "email": user.email,
         "full_name": user.full_name,
+        "user_type": user.user_type,
         "hashed_password": get_password_hash(user.password),
         "created_at": datetime.utcnow()
     }
@@ -116,5 +117,6 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     return UserResponse(
         id=str(current_user["_id"]),
         email=current_user["email"],
-        full_name=current_user["full_name"]
+        full_name=current_user["full_name"],
+        user_type=current_user.get("user_type", "Student")
     )

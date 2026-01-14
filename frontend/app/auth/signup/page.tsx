@@ -14,6 +14,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
+  const [userType, setUserType] = useState("Student");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -99,7 +100,12 @@ export default function SignupPage() {
       const res = await fetch(API_ENDPOINTS.AUTH.SIGNUP, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, full_name: fullName.trim() }),
+        body: JSON.stringify({ 
+          email, 
+          password, 
+          full_name: fullName.trim(),
+          user_type: userType 
+        }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -228,6 +234,33 @@ export default function SignupPage() {
               placeholder="you@example.com"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-foreground/70 mb-1.5">WHO ARE YOU?</label>
+            <div className="relative">
+              <select
+                value={userType}
+                onChange={(e) => setUserType(e.target.value)}
+                className="input-field appearance-none cursor-pointer pr-10"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                  backgroundPosition: 'right 0.5rem center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: '1.5em 1.5em',
+                }}
+                required
+              >
+                <option value="Student">Student</option>
+                <option value="Developer">Developer</option>
+                <option value="Freelancer">Freelancer</option>
+                <option value="Professional">Professional</option>
+                <option value="Career Changer">Career Changer</option>
+                <option value="Entrepreneur">Entrepreneur</option>
+                <option value="Job Seeker">Job Seeker</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
           </div>
 
           <div>

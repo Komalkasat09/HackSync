@@ -5,6 +5,7 @@ class UserSignup(BaseModel):
     email: EmailStr
     password: str
     full_name: str
+    user_type: str
 
 class UserLogin(BaseModel):
     username: EmailStr
@@ -18,3 +19,4 @@ class UserResponse(BaseModel):
     id: str
     email: str
     full_name: str
+    user_type: str

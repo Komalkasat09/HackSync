@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { ModeToggle } from "@/components/ModeToggle";
-import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { API_ENDPOINTS } from "@/lib/config";
 
 export default function DashboardLayout({
@@ -79,7 +78,6 @@ export default function DashboardLayout({
           <h2 className="font-medium text-foreground/90 text-sm tracking-tight">Dashboard</h2>
           <div className="flex items-center gap-3">
             <ModeToggle />
-            <ProfileDropdown />
           </div>
         </header>
 
