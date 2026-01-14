@@ -17,6 +17,8 @@ import {
   Eye
 } from "lucide-react";
 import { API_ENDPOINTS } from "@/lib/config";
+import { SkillAutocomplete } from "@/components/SkillAutocomplete";
+import { TECH_SKILLS, INTERESTS } from "@/lib/skillsSuggestions";
 
 interface Skill {
   id: string;
@@ -306,23 +308,13 @@ export default function YourProfilePage() {
           ))}
         </div>
         
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newSkill}
-            onChange={(e) => setNewSkill(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && addSkill()}
-            placeholder="Add a skill (e.g., React, Python)"
-            className="flex-1 px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-foreground"
-          />
-          <button
-            onClick={addSkill}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300"
-          >
-            <Plus className="w-4 h-4" />
-            Add
-          </button>
-        </div>
+        <SkillAutocomplete
+          value={newSkill}
+          onChange={setNewSkill}
+          onAdd={addSkill}
+          placeholder="Type to search or add a skill..."
+          suggestions={TECH_SKILLS}
+        />
       </div>
 
       {/* Interests Section */}
@@ -349,30 +341,13 @@ export default function YourProfilePage() {
           ))}
         </div>
         
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newInterest}
-            onChange={(e) => setNewInterest(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && addInterest()}
-            placeholder="Add an interest (e.g., Machine Learning, Design)"
-            className="flex-1 px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-foreground"
-          />
-          <button
-            onClick={addInterest}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300"
-          >
-            <Plus className="w-4 h-4" />
-            Add
-          </button>
-        </div>
-      </div>
-
-      {/* Note: Experience, Projects, and Education sections can be expanded similarly */}
-      <div className="bg-card border border-blue-500/20 rounded-xl p-6">
-        <p className="text-sm text-foreground/60 text-center">
-          Experience, Projects, and Education sections coming soon...
-        </p>
+        <SkillAutocomplete
+          value={newInterest}
+          onChange={setNewInterest}
+          onAdd={addInterest}
+          placeholder="Type to search or add an interest..."
+          suggestions={INTERESTS}
+        />
       </div>
     </div>
   );
