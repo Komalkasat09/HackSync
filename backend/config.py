@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
+    # Gemini AI Configuration
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_API_KEY_1: Optional[str] = os.getenv("GEMINI_API_KEY_1", None)
+    GEMINI_API_KEY_2: Optional[str] = os.getenv("GEMINI_API_KEY_2", None)
+    GEMINI_API_KEY_3: Optional[str] = os.getenv("GEMINI_API_KEY_3", None)
+    GEMINI_API_KEY_4: Optional[str] = os.getenv("GEMINI_API_KEY_4", None)
+    GEMINI_API_KEY_5: Optional[str] = os.getenv("GEMINI_API_KEY_5", None)
+    
     # API Configuration
     API_VERSION: str = "v1"
     DEBUG: bool = True
@@ -41,6 +49,19 @@ class Settings(BaseSettings):
         
         # Return as-is if no credentials found
         return self.MONGODB_URL
+    
+    def get_gemini_api_keys(self) -> list[str]:
+        """Get all available Gemini API keys for fallback mechanism"""
+        keys = [
+            self.GEMINI_API_KEY_1,
+            self.GEMINI_API_KEY_2,
+            self.GEMINI_API_KEY,
+            self.GEMINI_API_KEY_3,
+            self.GEMINI_API_KEY_4,
+            self.GEMINI_API_KEY_5,
+        ]
+        # Filter out None/empty keys
+        return [key for key in keys if key]
 
 settings = Settings()
 

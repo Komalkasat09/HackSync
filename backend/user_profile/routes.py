@@ -4,6 +4,7 @@ from typing import Optional
 from datetime import datetime
 import io
 from .schema import UserProfile, UserProfileUpdate, UserProfileResponse
+from .resume_extractor import extract_profile_from_resume
 import sys
 sys.path.append('..')
 from auth.routes import get_current_user
@@ -24,6 +25,7 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
         # Create empty profile if doesn't exist
         profile = {
             "user_id": user_id,
+            "links": [],
             "skills": [],
             "experiences": [],
             "projects": [],
@@ -40,6 +42,7 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
     
     return UserProfileResponse(
         user_id=user_id,
+        links=profile.get("links", []),
         skills=profile.get("skills", []),
         experiences=profile.get("experiences", []),
         projects=profile.get("projects", []),
@@ -59,6 +62,8 @@ async def update_profile(
     
     # Build update document
     update_data = {}
+    if profile_update.links is not None:
+        update_data["links"] = [link.dict() for link in profile_update.links]
     if profile_update.skills is not None:
         update_data["skills"] = [skill.dict() for skill in profile_update.skills]
     if profile_update.experiences is not None:
@@ -87,6 +92,7 @@ async def update_profile(
     
     return UserProfileResponse(
         user_id=user_id,
+        links=profile.get("links", []),
         skills=profile.get("skills", []),
         experiences=profile.get("experiences", []),
         projects=profile.get("projects", []),
@@ -206,3 +212,56 @@ async def delete_resume(current_user: dict = Depends(get_current_user)):
     
     return {"message": "Resume deleted successfully"}
 
+
+@router.post("/extract-resume")
+async def extract_resume(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Extract all profile data from resume PDF using AI.
+    Auto-fills skills, experience, education, projects, links, interests.
+    """
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    
+    try:
+        db = await get_database()
+        user_id = str(current_user["_id"])
+        
+        # Read PDF content
+        pdf_content = await file.read()
+        
+        # Extract profile data using Gemini AI
+        print(f"Extracting resume for user: {user_id}")
+        extracted_data = extract_profile_from_resume(pdf_content)
+        print(f"Extracted data: {extracted_data}")
+        
+        # Update user profile with extracted data
+        await db.user_profiles.update_one(
+            {"user_id": user_id},
+            {
+                "$set": {
+                    "skills": extracted_data.get("skills", []),
+                    "links": extracted_data.get("links", []),
+                    "experiences": extracted_data.get("experience", []),
+                    "projects": extracted_data.get("projects", []),
+                    "education": extracted_data.get("education", []),
+                    "interests": extracted_data.get("interests", []),
+                    "extracted_at": datetime.utcnow()
+                }
+            },
+            upsert=True
+        )
+        
+        return {
+            "success": True,
+            "message": "Resume data extracted successfully",
+            "data": extracted_data
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to extract resume data: {str(e)}"
+        )

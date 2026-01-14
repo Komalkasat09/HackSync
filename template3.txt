@@ -1,0 +1,414 @@
+// components/templates/CreativeTemplate.tsx
+import React from 'react';
+
+interface ResumeData {
+  personal: {
+    name: string;
+    title: string;
+    email: string;
+    phone: string;
+    location: string;
+    linkedin?: string;
+    website?: string;
+  };
+  summary: string;
+  experience: Array<{
+    title: string;
+    company: string;
+    location: string;
+    startDate: string;
+    endDate: string;
+    bullets: string[];
+  }>;
+  education: Array<{
+    degree: string;
+    school: string;
+    location: string;
+    graduationDate: string;
+    gpa?: string;
+  }>;
+  skills: {
+    languages: string[];
+    frameworks: string[];
+    tools: string[];
+  };
+  projects?: Array<{
+    name: string;
+    description: string;
+    technologies: string[];
+    link?: string;
+  }>;
+}
+
+export default function CreativeTemplate({ data }: { data: ResumeData }) {
+  return (
+    <div className="creative-container">
+      <style jsx>{`
+        .creative-container {
+          font-family: Helvetica, Arial, sans-serif;
+          background: #faf8f5;
+          margin: 0;
+          padding: 0;
+        }
+
+        .inner-container {
+          max-width: 900px;
+          margin: 0 auto;
+          background: white;
+          min-height: 100vh;
+        }
+
+        .header {
+          background: linear-gradient(135deg, #8b4513 0%, #d2691e 50%, #cd853f 100%);
+          color: white;
+          padding: 60px 50px;
+          position: relative;
+        }
+
+        .header::after {
+          content: '';
+          position: absolute;
+          bottom: -30px;
+          left: 0;
+          right: 0;
+          height: 30px;
+          background: linear-gradient(135deg, #8b4513 0%, #d2691e 50%, #cd853f 100%);
+          clip-path: polygon(0 0, 100% 0, 100% 100%, 0 50%);
+        }
+
+        .header-content {
+          max-width: 600px;
+        }
+
+        .name {
+          font-size: 42px;
+          font-weight: bold;
+          margin-bottom: 10px;
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+          line-height: 1.1;
+        }
+
+        .tagline {
+          font-size: 18px;
+          margin-bottom: 20px;
+          opacity: 0.95;
+          font-weight: 300;
+        }
+
+        .contact-bar {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 15px;
+          font-size: 13px;
+          margin-top: 25px;
+        }
+
+        .contact-bar span {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        }
+
+        .content {
+          padding: 60px 50px;
+        }
+
+        .section {
+          margin-bottom: 40px;
+          page-break-inside: avoid;
+        }
+
+        .section-header {
+          display: flex;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .section-icon {
+          width: 40px;
+          height: 40px;
+          background: linear-gradient(135deg, #8b4513, #cd853f);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 18px;
+          margin-right: 15px;
+          flex-shrink: 0;
+        }
+
+        .section-title {
+          font-size: 24px;
+          font-weight: bold;
+          color: #8b4513;
+        }
+
+        .summary-box {
+          background: #faf8f5;
+          padding: 20px;
+          border-left: 4px solid #cd853f;
+          border-radius: 5px;
+          font-size: 14px;
+          line-height: 1.7;
+          color: #333;
+        }
+
+        .timeline {
+          position: relative;
+          padding-left: 30px;
+        }
+
+        .timeline::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: linear-gradient(180deg, #8b4513, #cd853f, #daa520);
+        }
+
+        .timeline-item {
+          position: relative;
+          margin-bottom: 30px;
+          padding-left: 25px;
+          page-break-inside: avoid;
+        }
+
+        .timeline-item::before {
+          content: '';
+          position: absolute;
+          left: -35px;
+          top: 5px;
+          width: 12px;
+          height: 12px;
+          background: #cd853f;
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 0 0 2px #cd853f;
+        }
+
+        .item-title {
+          font-size: 16px;
+          font-weight: bold;
+          color: #8b4513;
+          margin-bottom: 5px;
+        }
+
+        .item-subtitle {
+          font-size: 14px;
+          color: #666;
+          margin-bottom: 3px;
+        }
+
+        .item-dates {
+          font-size: 12px;
+          color: #999;
+          font-style: italic;
+          margin-bottom: 10px;
+        }
+
+        .timeline-item ul {
+          margin-left: 20px;
+          margin-top: 10px;
+        }
+
+        .timeline-item li {
+          font-size: 13px;
+          line-height: 1.6;
+          margin-bottom: 6px;
+          color: #444;
+        }
+
+        .skills-container {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 20px;
+        }
+
+        .skill-category {
+          background: #faf8f5;
+          padding: 20px;
+          border-radius: 8px;
+          border-top: 3px solid #cd853f;
+        }
+
+        .skill-category-title {
+          font-size: 14px;
+          font-weight: bold;
+          color: #8b4513;
+          margin-bottom: 12px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .skill-tag {
+          display: inline-block;
+          background: white;
+          padding: 6px 12px;
+          border-radius: 15px;
+          font-size: 12px;
+          margin-right: 8px;
+          margin-bottom: 8px;
+          border: 1px solid #ddd;
+          color: #555;
+        }
+
+        .education-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 20px;
+        }
+
+        .edu-card {
+          background: #faf8f5;
+          padding: 20px;
+          border-radius: 8px;
+          border-left: 4px solid #cd853f;
+        }
+
+        .edu-degree {
+          font-size: 15px;
+          font-weight: bold;
+          color: #8b4513;
+          margin-bottom: 8px;
+        }
+
+        .edu-school {
+          font-size: 13px;
+          color: #666;
+          margin-bottom: 5px;
+        }
+
+        .edu-date {
+          font-size: 12px;
+          color: #999;
+        }
+
+        @media print {
+          .header::after {
+            display: none;
+          }
+        }
+      `}</style>
+
+      <div className="inner-container">
+        {/* HEADER */}
+        <div className="header">
+          <div className="header-content">
+            <div className="name">{data.personal.name}</div>
+            <div className="tagline">{data.personal.title}</div>
+            <div className="contact-bar">
+              <span>📧 {data.personal.email}</span>
+              <span>📱 {data.personal.phone}</span>
+              <span>📍 {data.personal.location}</span>
+              {data.personal.linkedin && <span>🔗 {data.personal.linkedin}</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* CONTENT */}
+        <div className="content">
+          {/* SUMMARY */}
+          <div className="section">
+            <div className="section-header">
+              <div className="section-icon">👤</div>
+              <div className="section-title">About Me</div>
+            </div>
+            <div className="summary-box">{data.summary}</div>
+          </div>
+
+          {/* EXPERIENCE */}
+          <div className="section">
+            <div className="section-header">
+              <div className="section-icon">💼</div>
+              <div className="section-title">Experience</div>
+            </div>
+            <div className="timeline">
+              {data.experience.map((job, idx) => (
+                <div key={idx} className="timeline-item">
+                  <div className="item-title">{job.title}</div>
+                  <div className="item-subtitle">{job.company} • {job.location}</div>
+                  <div className="item-dates">{job.startDate} - {job.endDate}</div>
+                  <ul>
+                    {job.bullets.map((bullet, i) => (
+                      <li key={i}>{bullet}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SKILLS */}
+          <div className="section">
+            <div className="section-header">
+              <div className="section-icon">🛠️</div>
+              <div className="section-title">Skills</div>
+            </div>
+            <div className="skills-container">
+              <div className="skill-category">
+                <div className="skill-category-title">Languages</div>
+                {data.skills.languages.map((skill, idx) => (
+                  <span key={idx} className="skill-tag">{skill}</span>
+                ))}
+              </div>
+              <div className="skill-category">
+                <div className="skill-category-title">Frameworks</div>
+                {data.skills.frameworks.map((skill, idx) => (
+                  <span key={idx} className="skill-tag">{skill}</span>
+                ))}
+              </div>
+              <div className="skill-category">
+                <div className="skill-category-title">Tools</div>
+                {data.skills.tools.map((skill, idx) => (
+                  <span key={idx} className="skill-tag">{skill}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* EDUCATION */}
+          <div className="section">
+            <div className="section-header">
+              <div className="section-icon">🎓</div>
+              <div className="section-title">Education</div>
+            </div>
+            <div className="education-grid">
+              {data.education.map((edu, idx) => (
+                <div key={idx} className="edu-card">
+                  <div className="edu-degree">{edu.degree}</div>
+                  <div className="edu-school">{edu.school}</div>
+                  <div className="edu-date">{edu.graduationDate}</div>
+                  {edu.gpa && <div className="edu-date">GPA: {edu.gpa}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* PROJECTS */}
+          {data.projects && data.projects.length > 0 && (
+            <div className="section">
+              <div className="section-header">
+                <div className="section-icon">🚀</div>
+                <div className="section-title">Projects</div>
+              </div>
+              <div className="timeline">
+                {data.projects.map((project, idx) => (
+                  <div key={idx} className="timeline-item">
+                    <div className="item-title">{project.name}</div>
+                    <div className="item-subtitle">{project.description}</div>
+                    <div className="item-dates">
+                      Technologies: {project.technologies.join(', ')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

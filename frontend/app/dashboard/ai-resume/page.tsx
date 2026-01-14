@@ -4,30 +4,20 @@ import { useState, useEffect } from "react";
 import { 
   Upload, 
   FileText, 
-  Plus, 
-  X, 
-  Edit2, 
-  Save, 
-  Trash2,
-  Briefcase,
-  GraduationCap,
-  Code,
-  Heart,
-  Download,
-  Eye,
+  Sparkles, 
+  X,
+  Plus,
+  Loader2,
   Link as LinkIcon,
   Github,
   Linkedin,
   Globe,
   Phone,
   Mail,
-  FolderGit2,
-  Loader2,
-  Sparkles
+  FolderGit2
 } from "lucide-react";
 import { API_ENDPOINTS } from "@/lib/config";
-import { SkillAutocomplete } from "@/components/SkillAutocomplete";
-import { TECH_SKILLS, INTERESTS } from "@/lib/skillsSuggestions";
+import { useRouter } from "next/navigation";
 
 interface Skill {
   id: string;
@@ -65,11 +55,6 @@ interface Link {
   value: string;
 }
 
-interface NewLink {
-  type: string;
-  value: string;
-}
-
 interface Project {
   id: string;
   name: string;
@@ -85,6 +70,11 @@ interface NewProject {
   link: string;
 }
 
+interface NewLink {
+  type: string;
+  value: string;
+}
+
 interface Education {
   id: string;
   degree: string;
@@ -97,33 +87,22 @@ interface Interest {
   name: string;
 }
 
-export default function YourProfilePage() {
+export default function AIResumePage() {
+  const router = useRouter();
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [hasResume, setHasResume] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [extracting, setExtracting] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   
-  const [fullName, setFullName] = useState("");
-  const [location, setLocation] = useState("India");
-  
+  // Profile data (editable)
   const [skills, setSkills] = useState<Skill[]>([]);
   const [newSkill, setNewSkill] = useState("");
-  
   const [links, setLinks] = useState<Link[]>([]);
-  
   const [experiences, setExperiences] = useState<Experience[]>([]);
-  const [editingExp, setEditingExp] = useState<string | null>(null);
-  
   const [projects, setProjects] = useState<Project[]>([]);
-  const [editingProject, setEditingProject] = useState<string | null>(null);
-  
   const [education, setEducation] = useState<Education[]>([]);
-  const [editingEdu, setEditingEdu] = useState<string | null>(null);
-  
   const [interests, setInterests] = useState<Interest[]>([]);
   const [newInterest, setNewInterest] = useState("");
   
-  // Add states
+  // Add/Edit states
   const [showAddExp, setShowAddExp] = useState(false);
   const [showAddEdu, setShowAddEdu] = useState(false);
   const [showAddLink, setShowAddLink] = useState(false);
@@ -140,124 +119,25 @@ export default function YourProfilePage() {
   const fetchProfileData = async () => {
     try {
       const token = localStorage.getItem("token");
-      
-      // Fetch user info from auth
-      const userResponse = await fetch(API_ENDPOINTS.AUTH.ME, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-        setFullName(userData.full_name || "");
-      }
-      
-      // Fetch profile data
       const response = await fetch(API_ENDPOINTS.PROFILE.GET, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       if (response.ok) {
         const data = await response.json();
-        setLocation(data.location || "India");
         setSkills(data.skills || []);
         setLinks(data.links || []);
         setExperiences(data.experiences || []);
         setProjects(data.projects || []);
         setEducation(data.education || []);
         setInterests(data.interests || []);
-        setHasResume(data.has_resume || false);
       }
     } catch (error) {
       console.error("Failed to fetch profile data:", error);
     }
   };
 
-  const handleResumeUpload = async () => {
-    if (!resumeFile) return;
-    
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", resumeFile);
-    
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(API_ENDPOINTS.PROFILE.UPLOAD_RESUME, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      });
-      
-      if (response.ok) {
-        setHasResume(true);
-        setResumeFile(null);
-      }
-    } catch (error) {
-      console.error("Failed to upload resume:", error);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleResumeView = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(API_ENDPOINTS.PROFILE.GET_RESUME, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, '_blank');
-      }
-    } catch (error) {
-      console.error("Failed to view resume:", error);
-    }
-  };
-
-  const handleExtractResume = async () => {
-    if (!resumeFile) return;
-    
-    setExtracting(true);
-    const formData = new FormData();
-    formData.append("file", resumeFile);
-    
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(API_ENDPOINTS.PROFILE.EXTRACT_RESUME, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        const extractedData = result.data;
-        
-        // Auto-fill all fields
-        setSkills(extractedData.skills || []);
-        setLinks(extractedData.links || []);
-        setExperiences(extractedData.experience || []);
-        setProjects(extractedData.projects || []);
-        setEducation(extractedData.education || []);
-        setInterests(extractedData.interests || []);
-        
-        // Clear file after extraction
-        setResumeFile(null);
-        
-        alert("Resume extracted successfully! All fields have been auto-filled.");
-      } else {
-        const error = await response.json();
-        alert(`Failed to extract: ${error.detail}`);
-      }
-    } catch (error) {
-      console.error("Failed to extract resume:", error);
-      alert("Failed to extract resume data");
-    } finally {
-      setExtracting(false);
-    }
-  };
-
-  const addSkill = async () => {
+  const addSkill = () => {
     if (!newSkill.trim()) return;
     
     const skill: Skill = {
@@ -265,38 +145,12 @@ export default function YourProfilePage() {
       name: newSkill.trim()
     };
     
-    const updatedSkills = [...skills, skill];
-    setSkills(updatedSkills);
+    setSkills([...skills, skill]);
     setNewSkill("");
-    
-    await saveProfileData({ skills: updatedSkills });
   };
 
-  const removeSkill = async (id: string) => {
-    const updatedSkills = skills.filter(s => s.id !== id);
-    setSkills(updatedSkills);
-    await saveProfileData({ skills: updatedSkills });
-  };
-
-  const addInterest = async () => {
-    if (!newInterest.trim()) return;
-    
-    const interest: Interest = {
-      id: Date.now().toString(),
-      name: newInterest.trim()
-    };
-    
-    const updatedInterests = [...interests, interest];
-    setInterests(updatedInterests);
-    setNewInterest("");
-    
-    await saveProfileData({ interests: updatedInterests });
-  };
-
-  const removeInterest = async (id: string) => {
-    const updatedInterests = interests.filter(i => i.id !== id);
-    setInterests(updatedInterests);
-    await saveProfileData({ interests: updatedInterests });
+  const removeSkill = (id: string) => {
+    setSkills(skills.filter(s => s.id !== id));
   };
 
   const addLink = async () => {
@@ -312,6 +166,8 @@ export default function YourProfilePage() {
     setLinks(updatedLinks);
     setNewLink({ type: "github", value: "" });
     setShowAddLink(false);
+    
+    // Save to MongoDB
     await saveProfileData({ links: updatedLinks });
   };
 
@@ -333,28 +189,20 @@ export default function YourProfilePage() {
     }
   };
 
-  const addProject = async () => {
-    if (!newProject.name.trim() || !newProject.description.trim()) return;
+  const addInterest = () => {
+    if (!newInterest.trim()) return;
     
-    const project: Project = {
+    const interest: Interest = {
       id: Date.now().toString(),
-      name: newProject.name.trim(),
-      description: newProject.description.trim(),
-      technologies: newProject.technologies.trim(),
-      link: newProject.link.trim() || undefined
+      name: newInterest.trim()
     };
     
-    const updatedProjects = [...projects, project];
-    setProjects(updatedProjects);
-    setNewProject({ name: "", description: "", technologies: "", link: "" });
-    setShowAddProject(false);
-    await saveProfileData({ projects: updatedProjects });
+    setInterests([...interests, interest]);
+    setNewInterest("");
   };
 
-  const removeProject = async (id: string) => {
-    const updatedProjects = projects.filter(p => p.id !== id);
-    setProjects(updatedProjects);
-    await saveProfileData({ projects: updatedProjects });
+  const removeInterest = (id: string) => {
+    setInterests(interests.filter(i => i.id !== id));
   };
 
   const addExperience = async () => {
@@ -374,6 +222,8 @@ export default function YourProfilePage() {
     setExperiences(updatedExperiences);
     setNewExp({ title: "", company: "", startDate: "", endDate: "", currentlyWorking: false, description: "" });
     setShowAddExp(false);
+    
+    // Save to MongoDB
     await saveProfileData({ experiences: updatedExperiences });
   };
 
@@ -397,6 +247,8 @@ export default function YourProfilePage() {
     setEducation(updatedEducation);
     setNewEdu({ degree: "", institution: "", year: "" });
     setShowAddEdu(false);
+    
+    // Save to MongoDB
     await saveProfileData({ education: updatedEducation });
   };
 
@@ -406,7 +258,33 @@ export default function YourProfilePage() {
     await saveProfileData({ education: updatedEducation });
   };
 
-  const saveProfileData = async (data: any) => {
+  const addProject = async () => {
+    if (!newProject.name.trim() || !newProject.description.trim()) return;
+    
+    const project: Project = {
+      id: Date.now().toString(),
+      name: newProject.name.trim(),
+      description: newProject.description.trim(),
+      technologies: newProject.technologies.trim(),
+      link: newProject.link.trim() || undefined
+    };
+    
+    const updatedProjects = [...projects, project];
+    setProjects(updatedProjects);
+    setNewProject({ name: "", description: "", technologies: "", link: "" });
+    setShowAddProject(false);
+    
+    // Save to MongoDB
+    await saveProfileData({ projects: updatedProjects });
+  };
+
+  const removeProject = async (id: string) => {
+    const updatedProjects = projects.filter(p => p.id !== id);
+    setProjects(updatedProjects);
+    await saveProfileData({ projects: updatedProjects });
+  };
+
+  const saveProfileData = async (data: Record<string, unknown>) => {
     try {
       const token = localStorage.getItem("token");
       await fetch(API_ENDPOINTS.PROFILE.UPDATE, {
@@ -422,160 +300,116 @@ export default function YourProfilePage() {
     }
   };
 
+  const handleAnalyzeResume = async () => {
+    setAnalyzing(true);
+    
+    try {
+      const token = localStorage.getItem("token");
+      const formData = new FormData();
+      
+      // Add resume file if uploaded (optional)
+      if (resumeFile) {
+        formData.append("file", resumeFile);
+      }
+      
+      // Add profile data
+      formData.append("skills", JSON.stringify(skills.map(s => s.name)));
+      formData.append("links", JSON.stringify(links));
+      formData.append("experiences", JSON.stringify(experiences));
+      formData.append("projects", JSON.stringify(projects));
+      formData.append("education", JSON.stringify(education));
+      formData.append("interests", JSON.stringify(interests.map(i => i.name)));
+      
+      const response = await fetch(API_ENDPOINTS.AI_RESUME.ANALYZE, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+      
+      if (response.ok) {
+        await response.json();
+        // Navigate to preview page with resume data
+        router.push("/dashboard/ai-resume/preview");
+      } else {
+        const error = await response.json();
+        alert(`Failed to analyze: ${error.detail}`);
+      }
+    } catch (error) {
+      console.error("Failed to analyze resume:", error);
+      alert("Failed to analyze. Please try again.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-black dark:text-white">Your Profile</h1>
-        <p className="text-black/60 dark:text-white/60 mt-1">Manage your professional profile, resume, and skills</p>
+        <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+          <Sparkles className="w-8 h-8 text-blue-500" />
+          AI Resume Builder
+        </h1>
+        <p className="text-foreground/60 mt-1">
+          Upload your resume (optional) and enhance it with AI using your profile data
+        </p>
       </div>
 
-      {/* Resume Section */}
-      <div className="bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-xl p-6">
-        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-          <FileText className="w-5 h-5 text-blue-500" />
-          Resume
+      {/* Upload Section */}
+      <div className="bg-white dark:bg-black backdrop-blur-lg border-2 border-black/20 dark:border-white/20 rounded-xl p-6 shadow-xl">
+        <h2 className="text-xl font-semibold text-black dark:text-white mb-4 flex items-center gap-2">
+          <Upload className="w-5 h-5 text-blue-500" />
+          Upload Resume (Optional)
         </h2>
-        
-        <div className="space-y-4">
-          {hasResume ? (
-            <div className="flex items-center gap-4">
-              <div className="flex-1 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Resume uploaded</p>
+
+        <div className="border-2 border-black/30 dark:border-white/30 border-dashed rounded-lg p-6 bg-black/5 dark:bg-white/5 backdrop-blur-sm">
+          {!resumeFile ? (
+            <label className="flex flex-col items-center justify-center gap-3 py-6 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-all">
+              <Upload className="w-12 h-12 text-blue-500" />
+              <div className="text-center">
+                <p className="text-black dark:text-white font-medium mb-1">Upload existing resume (PDF)</p>
+                <p className="text-sm text-black/60 dark:text-white/60">or proceed without a resume to build from scratch</p>
               </div>
-              <button
-                onClick={handleResumeView}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300"
-              >
-                <Eye className="w-4 h-4" />
-                View
-              </button>
-              <label className="flex items-center gap-2 px-4 py-2 bg-foreground/10 text-foreground rounded-lg hover:bg-foreground/20 transition-all duration-300 cursor-pointer">
-                <Upload className="w-4 h-4" />
-                Replace
-                <input
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) {
-                      setResumeFile(e.target.files[0]);
-                    }
-                  }}
-                />
-              </label>
-            </div>
+              <input
+                type="file"
+                accept=".pdf"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    setResumeFile(e.target.files[0]);
+                  }
+                }}
+              />
+            </label>
           ) : (
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-              <Upload className="w-12 h-12 text-foreground/40 mx-auto mb-3" />
-              <p className="text-foreground/60 mb-4">Upload your resume (PDF format)</p>
-              <label className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 cursor-pointer">
-                <Upload className="w-4 h-4" />
-                Choose File
-                <input
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) {
-                      setResumeFile(e.target.files[0]);
-                    }
-                  }}
-                />
-              </label>
-            </div>
-          )}
-          
-          {resumeFile && (
-            <div className="flex items-center gap-4 p-4 bg-background border border-border rounded-lg">
-              <FileText className="w-5 h-5 text-blue-500" />
-              <span className="flex-1 text-sm text-foreground">{resumeFile.name}</span>
-              <button
-                onClick={handleExtractResume}
-                disabled={extracting}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
-              >
-                {extracting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Extracting...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Extract & Auto-Fill
-                  </>
-                )}
-              </button>
-              <button
-                onClick={handleResumeUpload}
-                disabled={uploading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 disabled:opacity-50"
-              >
-                {uploading ? "Uploading..." : "Upload"}
-              </button>
+            <div className="flex items-center gap-3 p-4 bg-blue-100 dark:bg-blue-900/30 backdrop-blur-sm border border-blue-300 dark:border-blue-700 rounded-lg">
+              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <span className="flex-1 text-black dark:text-white font-medium truncate">{resumeFile.name}</span>
               <button
                 onClick={() => setResumeFile(null)}
-                className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-300"
+                className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/10 rounded-lg transition-all"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Personal Information Section */}
-      <div className="bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-xl p-6">
-        <h2 className="text-xl font-semibold text-black dark:text-white mb-4">Personal Information</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-black dark:text-white mb-2">
-              Full Name
-            </label>
-            <input
-              type="text"
-              value={fullName}
-              readOnly
-              className="w-full px-4 py-2 bg-black/5 dark:bg-white/5 border-2 border-black/20 dark:border-white/20 rounded-lg text-black dark:text-white cursor-not-allowed"
-              placeholder="From your account"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-black dark:text-white mb-2">
-              Location
-            </label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              onBlur={() => saveProfileData({ location: location })}
-              className="w-full px-4 py-2 bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-lg text-black dark:text-white focus:outline-none focus:border-blue-500"
-              placeholder="City, State/Country"
-            />
-          </div>
         </div>
       </div>
 
       {/* Skills Section */}
-      <div className="bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-xl p-6">
-        <h2 className="text-xl font-semibold text-black dark:text-white mb-4 flex items-center gap-2">
-          <Code className="w-5 h-5 text-blue-500" />
-          Skills
-        </h2>
+      <div className="bg-white dark:bg-black backdrop-blur-lg border-2 border-black/20 dark:border-white/20 rounded-xl p-6 shadow-xl">
+        <h2 className="text-xl font-semibold text-black dark:text-white mb-4">Skills</h2>
         
         <div className="flex flex-wrap gap-2 mb-4">
           {skills.map((skill) => (
             <span
               key={skill.id}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 backdrop-blur-sm border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
             >
               {skill.name}
               <button
                 onClick={() => removeSkill(skill.id)}
-                className="hover:text-red-500 transition-colors"
+                className="hover:text-red-600 dark:hover:text-red-400 transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -583,22 +417,28 @@ export default function YourProfilePage() {
           ))}
         </div>
         
-        <SkillAutocomplete
-          value={newSkill}
-          onChange={setNewSkill}
-          onAdd={addSkill}
-          placeholder="Type to search or add a skill..."
-          suggestions={TECH_SKILLS}
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newSkill}
+            onChange={(e) => setNewSkill(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+            placeholder="Add a skill (e.g., Python, React)"
+            className="flex-1 px-4 py-2 bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black dark:text-white placeholder:text-black/50 dark:placeholder:text-white/50"
+          />
+          <button
+            onClick={addSkill}
+            className="px-6 py-2 bg-white dark:bg-white text-black border-2 border-black/20 rounded-lg hover:bg-white/80 dark:hover:bg-white/90 transition-all"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Links Section */}
-      <div className="bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-xl p-6">
+      <div className="bg-white dark:bg-black backdrop-blur-lg border-2 border-black/20 dark:border-white/20 rounded-xl p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-black dark:text-white flex items-center gap-2">
-            <LinkIcon className="w-5 h-5 text-blue-500" />
-            Links
-          </h2>
+          <h2 className="text-xl font-semibold text-black dark:text-white">Links</h2>
           <button
             onClick={() => setShowAddLink(!showAddLink)}
             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white text-black border-2 border-black/20 rounded-lg hover:bg-white/80 dark:hover:bg-white/90 transition-all"
@@ -609,7 +449,7 @@ export default function YourProfilePage() {
         </div>
         
         {showAddLink && (
-          <div className="mb-4 p-4 bg-black/5 dark:bg-white/5 border-2 border-black/20 dark:border-white/20 rounded-lg space-y-3">
+          <div className="mb-4 p-4 bg-black/5 dark:bg-white/5 backdrop-blur-sm border-2 border-black/20 dark:border-white/20 rounded-lg space-y-3">
             <div>
               <label className="block text-sm font-medium text-black dark:text-white mb-1">Link Type</label>
               <select
@@ -657,7 +497,7 @@ export default function YourProfilePage() {
             {links.map((link) => (
               <span
                 key={link.id}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 backdrop-blur-sm border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
               >
                 {getLinkIcon(link.type)}
                 <span className="capitalize">{link.type}</span>
@@ -672,28 +512,25 @@ export default function YourProfilePage() {
             ))}
           </div>
         ) : (
-          <p className="text-black/60 dark:text-white/60 text-sm">No links added yet.</p>
+          <p className="text-black/60 dark:text-white/60 text-sm">No links added yet. Click "Add Link" to begin.</p>
         )}
       </div>
 
       {/* Experience Section */}
-      <div className="bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-xl p-6">
+      <div className="bg-white dark:bg-black backdrop-blur-lg border-2 border-black/20 dark:border-white/20 rounded-xl p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-blue-500" />
-            Experience
-          </h2>
+          <h2 className="text-xl font-semibold text-black dark:text-white">Experience</h2>
           <button
             onClick={() => setShowAddExp(!showAddExp)}
             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white text-black border-2 border-black/20 rounded-lg hover:bg-white/80 dark:hover:bg-white/90 transition-all"
           >
             <Plus className="w-4 h-4" />
-            Add
+            Add Experience
           </button>
         </div>
         
         {showAddExp && (
-          <div className="mb-4 p-4 bg-black/5 dark:bg-white/5 border-2 border-black/20 dark:border-white/20 rounded-lg space-y-3">
+          <div className="mb-4 p-4 bg-black/5 dark:bg-white/5 backdrop-blur-sm border-2 border-black/20 dark:border-white/20 rounded-lg space-y-3">
             <input
               type="text"
               value={newExp.title}
@@ -771,7 +608,7 @@ export default function YourProfilePage() {
               <div key={exp.id} className="p-4 bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-lg group relative">
                 <button
                   onClick={() => removeExperience(exp.id)}
-                  className="absolute top-3 right-3 p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                  className="absolute top-3 right-3 p-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -782,28 +619,25 @@ export default function YourProfilePage() {
             ))}
           </div>
         ) : (
-          <p className="text-black/60 dark:text-white/60 text-sm">No experience added yet.</p>
+          <p className="text-black/60 dark:text-white/60 text-sm">No experience added yet. Click "Add Experience" to begin.</p>
         )}
       </div>
 
       {/* Education Section */}
-      <div className="bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-xl p-6">
+      <div className="bg-white dark:bg-black backdrop-blur-lg border-2 border-black/20 dark:border-white/20 rounded-xl p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-black dark:text-white flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-blue-500" />
-            Education
-          </h2>
+          <h2 className="text-xl font-semibold text-black dark:text-white">Education</h2>
           <button
             onClick={() => setShowAddEdu(!showAddEdu)}
             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white text-black border-2 border-black/20 rounded-lg hover:bg-white/80 dark:hover:bg-white/90 transition-all"
           >
             <Plus className="w-4 h-4" />
-            Add
+            Add Education
           </button>
         </div>
         
         {showAddEdu && (
-          <div className="mb-4 p-4 bg-black/5 dark:bg-white/5 border-2 border-black/20 dark:border-white/20 rounded-lg space-y-3">
+          <div className="mb-4 p-4 bg-black/5 dark:bg-white/5 backdrop-blur-sm border-2 border-black/20 dark:border-white/20 rounded-lg space-y-3">
             <input
               type="text"
               value={newEdu.degree}
@@ -851,7 +685,7 @@ export default function YourProfilePage() {
               <div key={edu.id} className="p-4 bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-lg group relative">
                 <button
                   onClick={() => removeEducation(edu.id)}
-                  className="absolute top-3 right-3 p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                  className="absolute top-3 right-3 p-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -861,17 +695,14 @@ export default function YourProfilePage() {
             ))}
           </div>
         ) : (
-          <p className="text-black/60 dark:text-white/60 text-sm">No education added yet.</p>
+          <p className="text-black/60 dark:text-white/60 text-sm">No education added yet. Click "Add Education" to begin.</p>
         )}
       </div>
 
       {/* Projects Section */}
-      <div className="bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-xl p-6">
+      <div className="bg-white dark:bg-black backdrop-blur-lg border-2 border-black/20 dark:border-white/20 rounded-xl p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-black dark:text-white flex items-center gap-2">
-            <FolderGit2 className="w-5 h-5 text-blue-500" />
-            Projects
-          </h2>
+          <h2 className="text-xl font-semibold text-black dark:text-white">Projects</h2>
           <button
             onClick={() => setShowAddProject(!showAddProject)}
             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white text-black border-2 border-black/20 rounded-lg hover:bg-white/80 dark:hover:bg-white/90 transition-all"
@@ -882,7 +713,7 @@ export default function YourProfilePage() {
         </div>
         
         {showAddProject && (
-          <div className="mb-4 p-4 bg-black/5 dark:bg-white/5 border-2 border-black/20 dark:border-white/20 rounded-lg space-y-3">
+          <div className="mb-4 p-4 bg-black/5 dark:bg-white/5 backdrop-blur-sm border-2 border-black/20 dark:border-white/20 rounded-lg space-y-3">
             <input
               type="text"
               value={newProject.name}
@@ -971,27 +802,24 @@ export default function YourProfilePage() {
             ))}
           </div>
         ) : (
-          <p className="text-black/60 dark:text-white/60 text-sm">No projects added yet.</p>
+          <p className="text-black/60 dark:text-white/60 text-sm">No projects added yet. Click "Add Project" to begin.</p>
         )}
       </div>
 
       {/* Interests Section */}
-      <div className="bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-xl p-6">
-        <h2 className="text-xl font-semibold text-black dark:text-white mb-4 flex items-center gap-2">
-          <Heart className="w-5 h-5 text-blue-500" />
-          Interests
-        </h2>
+      <div className="bg-white dark:bg-black backdrop-blur-lg border-2 border-black/20 dark:border-white/20 rounded-xl p-6 shadow-xl">
+        <h2 className="text-xl font-semibold text-black dark:text-white mb-4">Interests</h2>
         
         <div className="flex flex-wrap gap-2 mb-4">
           {interests.map((interest) => (
             <span
               key={interest.id}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 backdrop-blur-sm border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
             >
               {interest.name}
               <button
                 onClick={() => removeInterest(interest.id)}
-                className="hover:text-red-500 transition-colors"
+                className="hover:text-red-600 dark:hover:text-red-400 transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -999,14 +827,52 @@ export default function YourProfilePage() {
           ))}
         </div>
         
-        <SkillAutocomplete
-          value={newInterest}
-          onChange={setNewInterest}
-          onAdd={addInterest}
-          placeholder="Type to search or add an interest..."
-          suggestions={INTERESTS}
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newInterest}
+            onChange={(e) => setNewInterest(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && addInterest()}
+            placeholder="Add an interest (e.g., Machine Learning)"
+            className="flex-1 px-4 py-2 bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black dark:text-white placeholder:text-black/50 dark:placeholder:text-white/50"
+          />
+          <button
+            onClick={addInterest}
+            className="px-6 py-2 bg-white dark:bg-white text-black border-2 border-black/20 rounded-lg hover:bg-white/80 dark:hover:bg-white/90 transition-all"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
       </div>
+
+      {/* Analyze Button - Only show when no forms are open */}
+      {!showAddExp && !showAddEdu && !showAddLink && !showAddProject && (
+        <div className="flex justify-end py-6">
+          <button
+            onClick={handleAnalyzeResume}
+            disabled={analyzing || (skills.length === 0 && !resumeFile)}
+            className="flex items-center gap-3 px-8 py-4 bg-white dark:bg-white text-black border-2 border-black/20 text-lg font-semibold rounded-xl hover:bg-white/80 dark:hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          >
+            {analyzing ? (
+              <>
+                <Loader2 className="w-6 h-6 animate-spin" />
+                Analyzing with AI...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-6 h-6" />
+                Generate AI Resume
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {(skills.length === 0 && !resumeFile) && (
+        <p className="text-center text-sm text-black/60 dark:text-white/60">
+          Add at least one skill or upload a resume to generate your AI-powered resume
+        </p>
+      )}
     </div>
   );
 }

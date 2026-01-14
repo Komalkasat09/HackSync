@@ -54,6 +54,13 @@ export const API_ENDPOINTS = {
     UPLOAD_RESUME: `${API_BASE_URL}/profile/resume/upload`,
     GET_RESUME: `${API_BASE_URL}/profile/resume`,
     DELETE_RESUME: `${API_BASE_URL}/profile/resume`,
+    EXTRACT_RESUME: `${API_BASE_URL}/profile/extract-resume`,
+  },
+  AI_RESUME: {
+    ANALYZE: `${API_BASE_URL}/ai-resume-builder/analyze`,
+    SAVE: `${API_BASE_URL}/ai-resume-builder/save`,
+    GET_DATA: `${API_BASE_URL}/ai-resume-builder/resume-data`,
+    GENERATE_PDF: `${API_BASE_URL}/ai-resume-builder/generate-pdf`,
   },
   CHATBOT: {
     CHAT: `${API_BASE_URL}/chatbot/chat`,

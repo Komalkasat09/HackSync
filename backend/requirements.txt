@@ -9,3 +9,5 @@ python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
 pymongo
+PyPDF2
+google-generativeai
