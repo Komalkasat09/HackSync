@@ -10,6 +10,7 @@ from interview_prep.routes import router as interview_router
 from user_profile.routes import router as profile_router
 from ai_resume_builder.routes import router as ai_resume_router
 from job_tracker.routes import router as job_tracker_router
+from job_application.routes import router as job_application_router
 from job_tracker.scheduler import job_scheduler
 from portfolio.routes import router as portfolio_router
 
@@ -48,6 +49,7 @@ app.include_router(learning_router, prefix="/api/learning", tags=["Learning Guid
 app.include_router(interview_router, prefix="/api/interview", tags=["Interview Prep"])
 app.include_router(job_tracker_router, prefix="/api/jobs", tags=["Job Tracker"])
 app.include_router(portfolio_router, prefix="/api", tags=["Portfolio"])
+app.include_router(job_application_router, prefix="/api", tags=["Job Application"])
 
 @app.get("/")
 async def root():
