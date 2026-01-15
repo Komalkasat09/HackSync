@@ -78,6 +78,19 @@ export const API_ENDPOINTS = {
   },
   LEARNING: {
     GENERATE_ROADMAP: `${API_BASE_URL}/api/learning/generate-roadmap`,
+    SAVE_ROADMAP: `${API_BASE_URL}/api/learning/save-roadmap`,
+    GET_ROADMAPS: `${API_BASE_URL}/api/learning/roadmaps`,
+    GET_ROADMAP: (id: string) => `${API_BASE_URL}/api/learning/roadmaps/${id}`,
+    DELETE_ROADMAP: (id: string) => `${API_BASE_URL}/api/learning/roadmaps/${id}`,
+    TOGGLE_FAVORITE: (id: string) => `${API_BASE_URL}/api/learning/roadmaps/${id}/favorite`,
+  },
+  DASHBOARD: {
+    STATS: `${API_BASE_URL}/api/dashboard/stats`,
+    SKILLS_PROGRESS: `${API_BASE_URL}/api/dashboard/skills-progress`,
+    CAREER_INTERESTS: `${API_BASE_URL}/api/dashboard/career-interests`,
+    WEEKLY_ACTIVITY: `${API_BASE_URL}/api/dashboard/weekly-activity`,
+    RECENT_ACTIVITIES: `${API_BASE_URL}/api/dashboard/recent-activities`,
+    MONTHLY_APPLICATIONS: `${API_BASE_URL}/api/dashboard/monthly-applications`,
   },
 } as const;
 

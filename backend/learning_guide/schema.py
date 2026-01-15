@@ -54,3 +54,39 @@ class GenerateRoadmapResponse(BaseModel):
     mermaid_code: str
     nodes: List[LearningNode]
     message: str
+
+# Schemas for saving and retrieving roadmaps
+class SavedRoadmap(BaseModel):
+    user_id: str
+    topic: str
+    mermaid_code: str
+    nodes: List[LearningNode]
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+    is_favorite: bool = False
+    notes: Optional[str] = None
+
+class SaveRoadmapRequest(BaseModel):
+    topic: str
+    mermaid_code: str
+    nodes: List[LearningNode]
+    notes: Optional[str] = None
+
+class RoadmapMetadata(BaseModel):
+    id: str
+    user_id: str
+    topic: str
+    created_at: datetime
+    node_count: int
+    is_favorite: bool = False
+    notes: Optional[str] = None
+
+class RoadmapListResponse(BaseModel):
+    success: bool
+    roadmaps: List[RoadmapMetadata]
+    message: str
+
+class RoadmapDetailResponse(BaseModel):
+    success: bool
+    roadmap: Optional[SavedRoadmap]
+    message: str
