@@ -1,12 +1,16 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Body
 from fastapi.responses import HTMLResponse, JSONResponse
 from typing import Optional
+from pydantic import BaseModel
 import sys
 sys.path.append('..')
 from auth.routes import get_current_user
 from config import get_database
 from .schema import PortfolioGenerateResponse, PortfolioDeployResponse
 from .portfolio_service import PortfolioService
+
+class DeployRequest(BaseModel):
+    design_type: str = "terminal"
 
 router = APIRouter(prefix="/portfolio", tags=["Portfolio"])
 
@@ -29,7 +33,10 @@ async def get_portfolio_data(current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/deploy")
-async def deploy_portfolio(current_user: dict = Depends(get_current_user)):
+async def deploy_portfolio(
+    request: DeployRequest = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
     """
     Deploy user's portfolio and return public URL
     """
@@ -37,9 +44,10 @@ async def deploy_portfolio(current_user: dict = Depends(get_current_user)):
         db = await get_database()
         user_id = str(current_user["_id"])
         
-        # Mark portfolio as deployed
+        # Mark portfolio as deployed with design type
         deployment_data = {
             "user_id": user_id,
+            "design_type": request.design_type,
             "deployed_at": __import__("datetime").datetime.utcnow(),
             "is_active": True
         }
@@ -86,6 +94,9 @@ async def get_user_portfolio_data(user_id: str):
         
         # Fetch portfolio data
         portfolio_data = await PortfolioService.fetch_user_portfolio_data(db, user_id)
+        
+        # Add design type to the response
+        portfolio_data["design_type"] = deployment.get("design_type", "terminal")
         
         return JSONResponse(content=portfolio_data)
     

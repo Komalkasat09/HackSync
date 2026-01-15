@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ShieldCheck, ChevronRight, Check, Zap, Crown } from "lucide-react";
 import { ModeToggle } from "@/components/ModeToggle";
 import { API_ENDPOINTS } from "@/lib/config";
+import SplashCursor from "@/components/SplashCursor";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden bg-background transition-colors">
+      <SplashCursor />
       
       {/* Navbar */}
       <nav className="container mx-auto px-6 py-6 flex justify-between items-center z-20">

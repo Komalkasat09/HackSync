@@ -18,14 +18,19 @@ import ReactFlow, {
   Position
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { 
+import {
   Sparkles,
-  Loader2, 
+  Loader2,
   Youtube,
   X,
   ExternalLink,
   Clock,
-  PlayCircle
+  PlayCircle,
+  Save,
+  History,
+  Trash2,
+  Star,
+  Calendar
 } from "lucide-react";
 
 interface Resource {
@@ -57,6 +62,16 @@ const NODE_COLORS = [
   { bg: '#6366F1', text: '#FFFFFF' }, // indigo
 ];
 
+interface RoadmapMetadata {
+  id: string;
+  user_id: string;
+  topic: string;
+  created_at: string;
+  node_count: number;
+  is_favorite: boolean;
+  notes: string | null;
+}
+
 export default function RoadmapPage() {
   const [step, setStep] = useState<"input" | "roadmap">("input");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -65,6 +80,12 @@ export default function RoadmapPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<LearningNode | null>(null);
   const [showResourcesPanel, setShowResourcesPanel] = useState(false);
+  const [showPastRoadmaps, setShowPastRoadmaps] = useState(false);
+  const [pastRoadmaps, setPastRoadmaps] = useState<RoadmapMetadata[]>([]);
+  const [loadingPastRoadmaps, setLoadingPastRoadmaps] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [currentMermaidCode, setCurrentMermaidCode] = useState("");
+  const [currentNodeData, setCurrentNodeData] = useState<LearningNode[]>([]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -317,13 +338,17 @@ export default function RoadmapPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      // Store the mermaid code and node data for saving later
+      setCurrentMermaidCode(res.data.mermaid_code);
+      setCurrentNodeData(res.data.nodes);
+
       const { nodes: parsedNodes, edges: parsedEdges } = parseMermaidToFlow(
         res.data.mermaid_code,
         res.data.nodes
       );
       setNodes(parsedNodes);
       setEdges(parsedEdges);
-      
+
       setStep("roadmap");
     } catch (err: unknown) {
       console.error(err);
@@ -331,6 +356,102 @@ export default function RoadmapPage() {
       alert(error.response?.data?.detail || "Failed to generate roadmap");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const saveRoadmap = async () => {
+    if (!currentMermaidCode || !currentNodeData.length) {
+      alert("No roadmap to save");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        API_ENDPOINTS.LEARNING.SAVE_ROADMAP,
+        {
+          topic: topic.trim(),
+          mermaid_code: currentMermaidCode,
+          nodes: currentNodeData,
+          notes: null
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert("Roadmap saved successfully!");
+    } catch (err: unknown) {
+      console.error(err);
+      const error = err as { response?: { data?: { detail?: string } } };
+      alert(error.response?.data?.detail || "Failed to save roadmap");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const loadPastRoadmaps = async () => {
+    setLoadingPastRoadmaps(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        API_ENDPOINTS.LEARNING.GET_ROADMAPS,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPastRoadmaps(res.data.roadmaps);
+      setShowPastRoadmaps(true);
+    } catch (err: unknown) {
+      console.error(err);
+      const error = err as { response?: { data?: { detail?: string } } };
+      alert(error.response?.data?.detail || "Failed to load past roadmaps");
+    } finally {
+      setLoadingPastRoadmaps(false);
+    }
+  };
+
+  const loadRoadmap = async (roadmapId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        API_ENDPOINTS.LEARNING.GET_ROADMAP(roadmapId),
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const roadmap = res.data.roadmap;
+      setTopic(roadmap.topic);
+      setCurrentMermaidCode(roadmap.mermaid_code);
+      setCurrentNodeData(roadmap.nodes);
+
+      const { nodes: parsedNodes, edges: parsedEdges } = parseMermaidToFlow(
+        roadmap.mermaid_code,
+        roadmap.nodes
+      );
+      setNodes(parsedNodes);
+      setEdges(parsedEdges);
+
+      setShowPastRoadmaps(false);
+      setStep("roadmap");
+    } catch (err: unknown) {
+      console.error(err);
+      const error = err as { response?: { data?: { detail?: string } } };
+      alert(error.response?.data?.detail || "Failed to load roadmap");
+    }
+  };
+
+  const deleteRoadmap = async (roadmapId: string) => {
+    if (!confirm("Are you sure you want to delete this roadmap?")) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(
+        API_ENDPOINTS.LEARNING.DELETE_ROADMAP(roadmapId),
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPastRoadmaps(prev => prev.filter(r => r.id !== roadmapId));
+    } catch (err: unknown) {
+      console.error(err);
+      const error = err as { response?: { data?: { detail?: string } } };
+      alert(error.response?.data?.detail || "Failed to delete roadmap");
     }
   };
 
@@ -411,12 +532,31 @@ export default function RoadmapPage() {
                 Click on any node to view resources
               </p>
             </div>
-            <button
-              onClick={resetAll}
-              className="bg-foreground hover:bg-foreground/90 text-background font-semibold px-5 py-2 rounded-lg transition-all"
-            >
-              New Topic
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={saveRoadmap}
+                disabled={isSaving}
+                className="bg-card hover:bg-card/80 text-foreground font-semibold px-5 py-2 rounded-lg transition-all border border-border flex items-center gap-2"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    Save
+                  </>
+                )}
+              </button>
+              <button
+                onClick={resetAll}
+                className="bg-foreground hover:bg-foreground/90 text-background font-semibold px-5 py-2 rounded-lg transition-all"
+              >
+                New Topic
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 bg-card border border-border rounded-xl overflow-hidden">
@@ -541,6 +681,111 @@ export default function RoadmapPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Floating Button - Bottom Right */}
+      <button
+        onClick={loadPastRoadmaps}
+        disabled={loadingPastRoadmaps}
+        className="fixed bottom-6 right-6 z-40 bg-foreground hover:bg-foreground/90 text-background p-4 rounded-full shadow-2xl flex items-center gap-2 transition-all disabled:opacity-50 hover:scale-105 border-2 border-foreground"
+      >
+        {loadingPastRoadmaps ? (
+          <Loader2 size={24} className="animate-spin" />
+        ) : (
+          <>
+            <History size={24} />
+            <span className="font-semibold pr-1">Past Roadmaps</span>
+          </>
+        )}
+      </button>
+
+      {/* Right Sidebar */}
+      {showPastRoadmaps && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/30 z-50 backdrop-blur-sm transition-opacity"
+            onClick={() => setShowPastRoadmaps(false)}
+          />
+
+          {/* Sidebar */}
+          <div className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-card shadow-2xl z-50 flex flex-col border-l border-border animate-slide-in-right">
+            <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-card">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">Past Roadmaps</h2>
+                <p className="text-sm text-foreground/60 mt-1">
+                  {pastRoadmaps.length} saved roadmap{pastRoadmaps.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowPastRoadmaps(false)}
+                className="p-2 hover:bg-foreground/5 rounded-lg transition-colors"
+              >
+                <X size={24} className="text-foreground/60" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {pastRoadmaps.length === 0 ? (
+                <div className="text-center py-12">
+                  <History size={48} className="mx-auto text-foreground/20 mb-4" />
+                  <p className="text-foreground/60">No saved roadmaps yet</p>
+                  <p className="text-sm text-foreground/40 mt-2">
+                    Generate and save roadmaps to access them later
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pastRoadmaps.map((roadmap) => (
+                    <div
+                      key={roadmap.id}
+                      className="bg-background rounded-xl p-4 hover:shadow-md transition-all border border-border hover:border-foreground/20"
+                    >
+                      <div className="space-y-3">
+                        <div>
+                          <h3 className="font-bold text-base text-foreground mb-1 line-clamp-2">
+                            {roadmap.topic}
+                          </h3>
+                          <div className="flex items-center gap-3 text-xs text-foreground/60">
+                            <div className="flex items-center gap-1">
+                              <Calendar size={12} />
+                              <span>
+                                {new Date(roadmap.created_at).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Sparkles size={12} />
+                              <span>{roadmap.node_count} topics</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => loadRoadmap(roadmap.id)}
+                            className="flex-1 bg-foreground hover:bg-foreground/90 text-background px-3 py-2 rounded-lg text-sm font-medium transition-all"
+                          >
+                            Load Roadmap
+                          </button>
+                          <button
+                            onClick={() => deleteRoadmap(roadmap.id)}
+                            className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                            title="Delete roadmap"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

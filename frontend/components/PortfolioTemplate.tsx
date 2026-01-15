@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, MapPin, Github, Linkedin, Globe, Menu, X, ChevronDown, ExternalLink, Calendar, Briefcase, Code, GraduationCap, ArrowUp, Terminal, Zap, Cpu, Database, Globe2 } from 'lucide-react';
+import { MinimalPortfolioTemplate } from './MinimalPortfolioTemplate';
+import { ProfessionalPortfolioTemplate } from './ProfessionalPortfolioTemplate';
 
 interface PortfolioData {
   user_id: string;
@@ -34,12 +36,15 @@ interface PortfolioData {
   interests: Array<{ id: string; name: string }>;
 }
 
+type DesignType = "terminal" | "minimal" | "professional";
+
 interface PortfolioTemplateProps {
   data: PortfolioData;
   isPreview?: boolean;
+  designType?: DesignType;
 }
 
-export function PortfolioTemplate({ data, isPreview = false }: PortfolioTemplateProps) {
+export function PortfolioTemplate({ data, isPreview = false, designType = "terminal" }: PortfolioTemplateProps) {
   const [activeSection, setActiveSection] = useState('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -134,6 +139,16 @@ export function PortfolioTemplate({ data, isPreview = false }: PortfolioTemplate
     }
   };
 
+  // Render different designs based on designType
+  if (designType === "minimal") {
+    return <MinimalPortfolioTemplate data={data} isPreview={isPreview} />;
+  }
+  
+  if (designType === "professional") {
+    return <ProfessionalPortfolioTemplate data={data} isPreview={isPreview} />;
+  }
+
+  // Default: Terminal design
   return (
     <div ref={containerRef} className={`${isPreview ? '' : 'min-h-screen'} bg-black text-white relative ${isPreview ? '' : 'overflow-x-hidden'}`}>
       {/* Animated Grid Background */}

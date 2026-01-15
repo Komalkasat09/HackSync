@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { API_ENDPOINTS } from "@/lib/config";
 import { Download, Loader2, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import ClassicTemplate from "@/components/templates/ClassicTemplate";
 import ModernTemplate from "@/components/templates/ModernTemplate";
 import CreativeTemplate from "@/components/templates/CreativeTemplate";
+import MinimalTemplate from "@/components/templates/MinimalTemplate";
+import ProfessionalTemplate from "@/components/templates/ProfessionalTemplate";
 
 interface AIResumeData {
   personal_info: any;
@@ -24,10 +28,13 @@ const templates = [
   { id: "modern", name: "Modern", color: "bg-blue-600" },
   { id: "classic", name: "Classic", color: "bg-gray-700" },
   { id: "creative", name: "Creative", color: "bg-amber-700" },
+  { id: "minimal", name: "Minimal", color: "bg-slate-400" },
+  { id: "professional", name: "Professional", color: "bg-gray-900" },
 ];
 
 export default function PreviewPage() {
   const router = useRouter();
+  const resumeRef = useRef<HTMLDivElement>(null);
   const [aiResumeData, setAiResumeData] = useState<AIResumeData | null>(null);
   const [userData, setUserData] = useState<any>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("modern");
@@ -139,30 +146,75 @@ export default function PreviewPage() {
   };
 
   const handleDownloadPDF = async () => {
+    if (!resumeRef.current) return;
+
     setDownloading(true);
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_ENDPOINTS.AI_RESUME.GENERATE_PDF}?template=${selectedTemplate}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` }
+      const element = resumeRef.current;
+
+      // Capture the resume element as canvas
+      const canvas = await html2canvas(element, {
+        scale: 2, // Higher resolution
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
       });
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `resume_${selectedTemplate}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+
+      const imgData = canvas.toDataURL('image/png');
+
+      // Calculate dimensions for A4 paper
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      // Calculate the aspect ratio
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+
+      const scaledWidth = imgWidth * ratio;
+      const scaledHeight = imgHeight * ratio;
+
+      // Center the image on the page
+      const x = (pdfWidth - scaledWidth) / 2;
+      const y = 0;
+
+      // Handle multi-page PDFs if content is longer than one page
+      const pageHeight = pdfHeight;
+      const contentHeight = (imgHeight * pdfWidth) / imgWidth;
+
+      if (contentHeight <= pageHeight) {
+        // Single page
+        pdf.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight);
       } else {
-        alert("Failed to generate PDF");
+        // Multi-page
+        let heightLeft = contentHeight;
+        let position = 0;
+
+        // First page
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, contentHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft > 0) {
+          position = heightLeft - contentHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, contentHeight);
+          heightLeft -= pageHeight;
+        }
       }
+
+      // Download the PDF
+      pdf.save(`resume_${selectedTemplate}.pdf`);
     } catch (error) {
-      console.error("Failed to download PDF:", error);
-      alert("Failed to download PDF");
+      console.error("Failed to generate PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
     } finally {
       setDownloading(false);
     }
@@ -179,6 +231,10 @@ export default function PreviewPage() {
         return <ClassicTemplate data={data} />;
       case "creative":
         return <CreativeTemplate data={data} />;
+      case "minimal":
+        return <MinimalTemplate data={data} />;
+      case "professional":
+        return <ProfessionalTemplate data={data} />;
       default:
         return <ModernTemplate data={data} />;
     }
@@ -241,7 +297,7 @@ export default function PreviewPage() {
         {/* Resume Preview Container */}
         <div className="bg-white shadow-2xl rounded-lg overflow-hidden">
           {/* Resume Content - Render actual template */}
-          <div className="w-full overflow-auto">
+          <div ref={resumeRef} className="w-full overflow-auto">
             {renderTemplate()}
           </div>
         </div>

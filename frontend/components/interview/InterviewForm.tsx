@@ -57,10 +57,25 @@ const InterviewForm = ({ onInterviewCreated }: InterviewFormProps) => {
       payload.append('candidateName', formState.candidateName);
       payload.append('candidateEmail', formState.candidateEmail);
       
-      const response = await fetch('https://n8n.srv990178.hstgr.cloud/webhook/start-interview', {
-        method: 'POST',
-        body: payload,
-      });
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+      
+      let response;
+      try {
+        response = await fetch('https://n8n.srv990178.hstgr.cloud/webhook/start-interview', {
+          method: 'POST',
+          body: payload,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Request timed out. The n8n webhook is taking too long to respond. Please try again later.');
+        }
+        throw fetchError;
+      }
       
       // Check if response is ok
       if (!response.ok) {
@@ -72,8 +87,14 @@ const InterviewForm = ({ onInterviewCreated }: InterviewFormProps) => {
       const contentType = response.headers.get('content-type');
       const text = await response.text();
       
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('Response content-type:', contentType);
+      console.log('Response text length:', text?.length || 0);
+      console.log('Response text (first 500 chars):', text?.substring(0, 500) || '(empty)');
+      
       if (!text || text.trim().length === 0) {
-        throw new Error('Empty response from server. Please try again.');
+        throw new Error(`Empty response from server (Status: ${response.status}). The n8n webhook may be timing out or not configured correctly. Please check the webhook configuration.`);
       }
       
       // Try to parse JSON

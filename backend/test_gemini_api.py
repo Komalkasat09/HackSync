@@ -24,7 +24,7 @@ async def test_gemini_key(api_key: str, key_name: str):
         
         # Try to initialize model
         try:
-            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            model = genai.GenerativeModel('gemini-2.5-flash')
             print(f"   ✓ Model 'gemini-2.0-flash-exp' initialized")
         except Exception as e:
             print(f"   ⚠ Model 'gemini-2.0-flash-exp' failed: {str(e)}")

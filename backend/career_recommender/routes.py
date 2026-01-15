@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import StreamingResponse
 from .schema import (
     CareerRecommendationRequest, 
@@ -18,6 +18,7 @@ import os
 import json
 import uuid
 from .career_counselor import career_counselor
+from auth.routes import get_current_user
 
 router = APIRouter()
 
@@ -346,10 +347,55 @@ async def chat_message_stream(request: ChatRequest):
         }
     )
 
+@router.get("/conversations/", response_model=ConversationListResponse)
+async def get_my_conversations(current_user: dict = Depends(get_current_user)):
+    """
+    Get all conversations for the authenticated user (for sidebar)
+    """
+    try:
+        user_id = str(current_user["_id"])
+        conversations = list(
+            conversations_collection.find(
+                {"user_id": user_id},
+                {
+                    "conversation_id": 1,
+                    "title": 1,
+                    "updated_at": 1,
+                    "created_at": 1,
+                    "_id": 0
+                }
+            ).sort("updated_at", -1)
+        )
+        
+        # Format timestamps (handle None values)
+        for conv in conversations:
+            if conv.get("updated_at"):
+                conv["updated_at"] = conv["updated_at"].isoformat() if hasattr(conv["updated_at"], "isoformat") else str(conv["updated_at"])
+            else:
+                conv["updated_at"] = datetime.utcnow().isoformat()
+                
+            if conv.get("created_at"):
+                conv["created_at"] = conv["created_at"].isoformat() if hasattr(conv["created_at"], "isoformat") else str(conv["created_at"])
+            else:
+                conv["created_at"] = datetime.utcnow().isoformat()
+        
+        return ConversationListResponse(
+            conversations=conversations,
+            total=len(conversations)
+        )
+        
+    except Exception as e:
+        print(f"Error fetching conversations: {str(e)}")
+        # Return empty list instead of error
+        return ConversationListResponse(
+            conversations=[],
+            total=0
+        )
+
 @router.get("/conversations/{user_id}", response_model=ConversationListResponse)
 async def get_user_conversations(user_id: str):
     """
-    Get all conversations for a user (for sidebar)
+    Get all conversations for a user (for sidebar) - Legacy endpoint
     """
     try:
         conversations = list(
@@ -389,7 +435,6 @@ async def get_user_conversations(user_id: str):
             conversations=[],
             total=0
         )
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/conversations/{user_id}/{conversation_id}")
 async def get_conversation(user_id: str, conversation_id: str):

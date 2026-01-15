@@ -1,7 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends
 from .schema import (
     SkillGapRequest, LearningGuideResponse, LearningPath, LearningResource,
-    GenerateRoadmapRequest, GenerateRoadmapResponse, LearningNode, Resource
+    GenerateRoadmapRequest, GenerateRoadmapResponse, LearningNode, Resource,
+    SaveRoadmapRequest, RoadmapListResponse, RoadmapDetailResponse,
+    RoadmapMetadata, SavedRoadmap
 )
 from .roadmap_service import RoadmapService
 from config import get_database
@@ -138,3 +140,199 @@ async def generate_learning_roadmap(
     except Exception as e:
         print(f"Error generating roadmap: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate roadmap: {str(e)}")
+
+@router.post("/save-roadmap")
+async def save_roadmap(
+    request: SaveRoadmapRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Save a generated roadmap to the user's collection
+    """
+    try:
+        db = await get_database()
+        user_id = str(current_user["_id"])
+
+        # Create roadmap document
+        roadmap_data = {
+            "user_id": user_id,
+            "topic": request.topic,
+            "mermaid_code": request.mermaid_code,
+            "nodes": [node.dict() for node in request.nodes],
+            "created_at": datetime.utcnow(),
+            "updated_at": None,
+            "is_favorite": False,
+            "notes": request.notes,
+            "node_count": len(request.nodes)
+        }
+
+        # Insert into database
+        result = await db.user_roadmaps.insert_one(roadmap_data)
+
+        return {
+            "success": True,
+            "roadmap_id": str(result.inserted_id),
+            "message": "Roadmap saved successfully"
+        }
+
+    except Exception as e:
+        print(f"Error saving roadmap: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to save roadmap: {str(e)}")
+
+@router.get("/roadmaps", response_model=RoadmapListResponse)
+async def get_user_roadmaps(current_user: dict = Depends(get_current_user)):
+    """
+    Get all roadmaps for the current user
+    """
+    try:
+        db = await get_database()
+        user_id = str(current_user["_id"])
+
+        # Fetch all roadmaps for user, sorted by creation date (newest first)
+        cursor = db.user_roadmaps.find(
+            {"user_id": user_id},
+            {"mermaid_code": 0, "nodes": 0}  # Exclude large fields for list view
+        ).sort("created_at", -1)
+
+        roadmaps = []
+        async for doc in cursor:
+            roadmaps.append(RoadmapMetadata(
+                id=str(doc["_id"]),
+                user_id=doc["user_id"],
+                topic=doc["topic"],
+                created_at=doc["created_at"],
+                node_count=doc.get("node_count", 0),
+                is_favorite=doc.get("is_favorite", False),
+                notes=doc.get("notes")
+            ))
+
+        return RoadmapListResponse(
+            success=True,
+            roadmaps=roadmaps,
+            message=f"Found {len(roadmaps)} roadmaps"
+        )
+
+    except Exception as e:
+        print(f"Error fetching roadmaps: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch roadmaps: {str(e)}")
+
+@router.get("/roadmaps/{roadmap_id}", response_model=RoadmapDetailResponse)
+async def get_roadmap(
+    roadmap_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get a specific roadmap by ID
+    """
+    try:
+        from bson import ObjectId
+        db = await get_database()
+        user_id = str(current_user["_id"])
+
+        # Fetch roadmap
+        roadmap = await db.user_roadmaps.find_one({
+            "_id": ObjectId(roadmap_id),
+            "user_id": user_id
+        })
+
+        if not roadmap:
+            raise HTTPException(status_code=404, detail="Roadmap not found")
+
+        # Convert to SavedRoadmap model
+        saved_roadmap = SavedRoadmap(
+            user_id=roadmap["user_id"],
+            topic=roadmap["topic"],
+            mermaid_code=roadmap["mermaid_code"],
+            nodes=[LearningNode(**node) for node in roadmap["nodes"]],
+            created_at=roadmap["created_at"],
+            updated_at=roadmap.get("updated_at"),
+            is_favorite=roadmap.get("is_favorite", False),
+            notes=roadmap.get("notes")
+        )
+
+        return RoadmapDetailResponse(
+            success=True,
+            roadmap=saved_roadmap,
+            message="Roadmap retrieved successfully"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching roadmap: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch roadmap: {str(e)}")
+
+@router.delete("/roadmaps/{roadmap_id}")
+async def delete_roadmap(
+    roadmap_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Delete a roadmap by ID
+    """
+    try:
+        from bson import ObjectId
+        db = await get_database()
+        user_id = str(current_user["_id"])
+
+        # Delete roadmap (only if owned by user)
+        result = await db.user_roadmaps.delete_one({
+            "_id": ObjectId(roadmap_id),
+            "user_id": user_id
+        })
+
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Roadmap not found")
+
+        return {
+            "success": True,
+            "message": "Roadmap deleted successfully"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting roadmap: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete roadmap: {str(e)}")
+
+@router.put("/roadmaps/{roadmap_id}/favorite")
+async def toggle_favorite(
+    roadmap_id: str,
+    is_favorite: bool,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Toggle favorite status of a roadmap
+    """
+    try:
+        from bson import ObjectId
+        db = await get_database()
+        user_id = str(current_user["_id"])
+
+        # Update favorite status
+        result = await db.user_roadmaps.update_one(
+            {
+                "_id": ObjectId(roadmap_id),
+                "user_id": user_id
+            },
+            {
+                "$set": {
+                    "is_favorite": is_favorite,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Roadmap not found")
+
+        return {
+            "success": True,
+            "message": "Favorite status updated"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating favorite: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update favorite: {str(e)}")

@@ -8,11 +8,23 @@ from .tavily_scraper import tavily_scraper
 from config import get_database
 from auth.routes import get_current_user
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any, Dict
 import logging
+from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+def convert_objectid_to_str(obj: Any) -> Any:
+    """Recursively convert ObjectId to string in dictionaries and lists"""
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    elif isinstance(obj, dict):
+        return {key: convert_objectid_to_str(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_objectid_to_str(item) for item in obj]
+    else:
+        return obj
 
 @router.get("/relevant", response_model=RelevantJobsResponse)
 async def get_relevant_jobs(
@@ -250,8 +262,11 @@ async def get_saved_jobs(
         for saved in saved_jobs:
             job = await db.jobs.find_one({"job_id": saved["job_id"]})
             if job:
+                # Convert all ObjectId fields to strings to avoid serialization errors
+                job_dict = convert_objectid_to_str(dict(job))
+                
                 enriched_jobs.append({
-                    **job,
+                    **job_dict,
                     "saved_status": saved["status"],
                     "saved_at": saved["saved_at"],
                     "applied_at": saved.get("applied_at"),

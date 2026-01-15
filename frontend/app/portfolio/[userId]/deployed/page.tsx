@@ -36,6 +36,7 @@ interface PortfolioData {
     year: string;
   }>;
   interests: Array<{ id: string; name: string }>;
+  design_type?: string;
 }
 
 export default function DeployedPortfolio() {
@@ -83,9 +84,11 @@ export default function DeployedPortfolio() {
     );
   }
 
+  const designType = (data.design_type || "terminal") as "terminal" | "minimal" | "professional";
+
   return (
     <div className="min-h-screen bg-background">
-      <PortfolioTemplate data={data} isPreview={false} />
+      <PortfolioTemplate data={data} isPreview={false} designType={designType} />
     </div>
   );
 }
