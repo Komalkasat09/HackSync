@@ -91,7 +91,7 @@ async def generate_learning_roadmap(
         topic = request.topic
         
         # Step 1: Generate roadmap structure using Gemini
-        roadmap_data = roadmap_service.generate_roadmap(topic)
+        roadmap_data = await roadmap_service.generate_roadmap(topic)
         mermaid_code = roadmap_data["mermaid_code"]
         topics = roadmap_data["topics"]
         

@@ -234,7 +234,7 @@ async def extract_resume(
         
         # Extract profile data using Gemini AI
         print(f"Extracting resume for user: {user_id}")
-        extracted_data = extract_profile_from_resume(pdf_content)
+        extracted_data = await extract_profile_from_resume(pdf_content)
         print(f"Extracted data: {extracted_data}")
         
         # Update user profile with extracted data

@@ -2,7 +2,9 @@ import PyPDF2
 import io
 import json
 import re
-import google.generativeai as genai
+import sys
+sys.path.append('..')
+from shared.gemini_service import gemini_service
 from config import settings
 
 def extract_text_from_pdf(pdf_content: bytes) -> str:
@@ -20,11 +22,11 @@ def extract_text_from_pdf(pdf_content: bytes) -> str:
         raise Exception(f"Failed to extract text from PDF: {str(e)}")
 
 
-def extract_profile_from_resume(pdf_content: bytes) -> dict:
+async def extract_profile_from_resume(pdf_content: bytes) -> dict:
     """
     Extract comprehensive profile data from resume using Gemini AI.
     Returns structured JSON with all profile fields.
-    Uses fallback mechanism to try multiple API keys if one fails.
+    Uses shared gemini service with automatic key rotation.
     """
     # Extract text from PDF
     resume_text = extract_text_from_pdf(pdf_content)
@@ -32,32 +34,13 @@ def extract_profile_from_resume(pdf_content: bytes) -> dict:
     if not resume_text:
         raise Exception("No text could be extracted from the resume")
     
-    # Get all available API keys from config
-    api_keys = settings.get_gemini_api_keys()
-    
-    if not api_keys:
-        raise Exception("No Gemini API keys configured")
-    
-    # Try each API key until one succeeds
-    last_error = None
-    for i, api_key in enumerate(api_keys, 1):
-        try:
-            print(f"Trying Gemini API key {i}/{len(api_keys)}...")
-            genai.configure(api_key=api_key)
-            return _extract_with_gemini(resume_text)
-        except Exception as e:
-            print(f"API key {i} failed: {str(e)}")
-            last_error = e
-            continue
-    
-    # If all keys failed, raise the last error
-    raise Exception(f"All API keys failed. Last error: {str(last_error)}")
+    # Use shared gemini service (handles key rotation automatically)
+    return await _extract_with_gemini(resume_text)
 
 
-def _extract_with_gemini(resume_text: str) -> dict:
+async def _extract_with_gemini(resume_text: str) -> dict:
     """
     Internal function to extract data using Gemini.
-    Separated for retry logic.
     """
     # Create comprehensive prompt for Gemini
     prompt = f"""
@@ -130,13 +113,11 @@ Return ONLY the JSON object, nothing else:
 """
     
     try:
-        # Call Gemini API
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(prompt)
+        # Call Gemini API using shared service
+        response = await gemini_service.generate_content(prompt)
         
         # Extract and parse JSON from response
-        response_text = response.text.strip()
-        
+        response_text = response.strip()
         # Remove markdown code blocks if present
         if response_text.startswith("```"):
             response_text = re.sub(r'^```(?:json)?\n?', '', response_text)

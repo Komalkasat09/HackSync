@@ -2,7 +2,9 @@ import os
 import json
 import logging
 from typing import List, Dict, Any
-import google.generativeai as genai
+import sys
+sys.path.append('..')
+from shared.gemini_service import gemini_service
 from datetime import datetime
 import requests
 import yt_dlp
@@ -17,36 +19,16 @@ class RoadmapService:
     """
     
     def __init__(self):
-        # Initialize Gemini
-        api_keys = settings.get_gemini_api_keys()
-        self.gemini_keys = api_keys
-        self.current_key_index = 0
-        
-        # YouTube search (no API key needed with youtube-search-python)
-        logger.info("YouTube search initialized (using youtube-search-python)")
+        # Use shared Gemini service with automatic key rotation
+        self.gemini = gemini_service
+        logger.info("Roadmap service initialized with shared Gemini service")
     
-    def _get_gemini_model(self):
-        """Get Gemini model with fallback to next API key if one fails"""
-        for i in range(len(self.gemini_keys)):
-            try:
-                key_index = (self.current_key_index + i) % len(self.gemini_keys)
-                api_key = self.gemini_keys[key_index]
-                genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-2.5-flash')
-                self.current_key_index = key_index
-                return model
-            except Exception as e:
-                logger.warning(f"Gemini API key {key_index + 1} failed: {e}")
-                continue
-        raise Exception("All Gemini API keys failed")
-    
-    def generate_roadmap(self, topic: str) -> Dict[str, Any]:
+    async def generate_roadmap(self, topic: str) -> Dict[str, Any]:
         """
         Generate learning roadmap using Gemini AI.
         Returns Mermaid code and list of node topics.
         """
         try:
-            model = self._get_gemini_model()
             
             prompt = f"""Generate a comprehensive learning roadmap for: {topic}
 
@@ -100,8 +82,8 @@ NOW GENERATE FOR: {topic}
 
 Return ONLY the Mermaid code, nothing else."""
 
-            response = model.generate_content(prompt)
-            mermaid_code = response.text.strip()
+            response = await self.gemini.generate_content(prompt)
+            mermaid_code = response.strip()
             
             # Remove markdown code blocks if present
             if mermaid_code.startswith('```'):

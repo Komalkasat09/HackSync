@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY_3: Optional[str] = os.getenv("GEMINI_API_KEY_3", None)
     GEMINI_API_KEY_4: Optional[str] = os.getenv("GEMINI_API_KEY_4", None)
     GEMINI_API_KEY_5: Optional[str] = os.getenv("GEMINI_API_KEY_5", None)
+    GEMINI_MODEL: str = "gemini-2.0-flash-exp"  # Standardized model across all services
     
     # Tavily API (optional - for Udemy/Coursera search)
     TAVILY_API_KEY: Optional[str] = os.getenv("TAVILY_API_KEY", None)

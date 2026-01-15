@@ -1,13 +1,10 @@
-import google.generativeai as genai
 from PyPDF2 import PdfReader
 import io
 import json
 import sys
 sys.path.append('..')
+from shared.gemini_service import gemini_service
 from config import settings
-
-# Configure Gemini API
-genai.configure(api_key=settings.GEMINI_API_KEY)
 
 def extract_resume_text(pdf_content: bytes) -> str:
     """
@@ -31,8 +28,6 @@ async def analyze_resume_with_gemini(resume_text: str, profile_data: dict) -> di
     Returns structured JSON resume data.
     """
     try:
-        # Initialize Gemini model
-        model = genai.GenerativeModel('gemini-2.5-flash')
         
         # Construct the prompt
         prompt = f"""
@@ -131,9 +126,9 @@ You are an expert resume analyzer and career consultant. Analyze the following r
 Return ONLY the JSON object, nothing else.
 """
         
-        # Generate response
-        response = model.generate_content(prompt)
-        result_text = response.text.strip()
+        # Generate response using shared gemini service
+        response = await gemini_service.generate_content(prompt)
+        result_text = response.strip()
         
         # Clean up response - remove markdown code blocks if present
         if result_text.startswith("```json"):

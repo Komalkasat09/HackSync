@@ -3,28 +3,17 @@ Career Counselor Integration Service
 Orchestrates user data + Tavily web intelligence + Gemini AI
 """
 import os
+import sys
+sys.path.append('..')
+from shared.gemini_service import gemini_service
 from typing import List, Dict, Optional
 from datetime import datetime
-import google.generativeai as genai
 from .tavily_service import tavily_service
 
 class CareerCounselorService:
     def __init__(self):
-        # Try multiple API key environment variables
-        api_key = (
-            os.getenv("GEMINI_API_KEY_1") or 
-            os.getenv("GEMINI_API_KEY_2") or 
-            os.getenv("GEMINI_API_KEY_3") or 
-            os.getenv("GEMINI_API_KEY")
-        )
-        
-        if api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
-            print(f"✓ Gemini AI initialized successfully")
-        else:
-            self.model = None
-            print("✗ No Gemini API key found")
+        self.gemini = gemini_service
+        print(f"✓ Career Counselor initialized")
     
     async def generate_response(
         self,
@@ -37,9 +26,6 @@ class CareerCounselorService:
         Generate AI counseling response with web intelligence
         Returns: (response_text, tavily_references)
         """
-        if not self.model:
-            return "AI service unavailable. Please configure GEMINI_API_KEY.", []
-        
         # Step 1: Gather intelligence from Tavily
         tavily_data = await self._gather_intelligence(user_message, user_profile)
         references = tavily_service.format_references(tavily_data)
@@ -53,13 +39,9 @@ class CareerCounselorService:
             attachments=attachments
         )
         
-        # Step 3: Generate response with Gemini
-        try:
-            response = await self.model.generate_content_async(prompt)
-            return response.text, references
-        except Exception as e:
-            print(f"Gemini API Error: {str(e)}")
-            return "I apologize, but I'm having trouble generating a response. Please try again.", references
+        # Step 3: Generate response with Gemini (with automatic key rotation)
+        response_text = await self.gemini.generate_content(prompt)
+        return response_text, references
     
     async def generate_streaming_response(
         self,
@@ -72,10 +54,6 @@ class CareerCounselorService:
         Stream AI counseling response token by token
         Yields: (text_chunk, references) - references only on first chunk
         """
-        if not self.model:
-            yield "AI service unavailable. Please configure GEMINI_API_KEY.", []
-            return
-        
         # Gather intelligence first
         tavily_data = await self._gather_intelligence(user_message, user_profile)
         references = tavily_service.format_references(tavily_data)
@@ -89,23 +67,13 @@ class CareerCounselorService:
             attachments=attachments
         )
         
-        # Stream response
-        try:
-            response = await self.model.generate_content_async(
-                prompt,
-                stream=True
-            )
-            
-            first_chunk = True
-            async for chunk in response:
-                if chunk.text:
-                    # Send references only with first chunk
-                    yield chunk.text, (references if first_chunk else [])
-                    first_chunk = False
-                    
-        except Exception as e:
-            print(f"Gemini Streaming Error: {str(e)}")
-            yield "I apologize, but I'm having trouble generating a response. Please try again.", references
+        # Stream response with automatic key rotation
+        first_chunk = True
+        async for chunk in self.gemini.generate_content_stream(prompt):
+            if chunk:
+                # Send references only with first chunk
+                yield chunk, (references if first_chunk else [])
+                first_chunk = False
     
     async def _gather_intelligence(
         self,
