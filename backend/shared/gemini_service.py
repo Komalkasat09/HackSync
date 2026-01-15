@@ -34,8 +34,16 @@ class GeminiKeyRotator:
     def _initialize_client(self):
         """Initialize client with current API key"""
         if self.current_key_index >= 0 and self.current_key_index < len(self.api_keys):
-            genai.configure(api_key=self.api_keys[self.current_key_index])
-            self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            api_key = self.api_keys[self.current_key_index]
+            if not api_key or api_key.strip() == "":
+                print(f"⚠ API Key #{self.current_key_index+1} is empty!")
+                return
+            genai.configure(api_key=api_key)
+            try:
+                self.model = genai.GenerativeModel('gemini-2.5-flash')
+            except Exception as e:
+                print(f"❌ Failed to initialize model with key #{self.current_key_index+1}: {str(e)}")
+                self.model = None
     
     def _rotate_key(self):
         """Rotate to next API key"""
@@ -52,7 +60,7 @@ class GeminiKeyRotator:
     async def generate_content(
         self, 
         prompt: str, 
-        model: str = "gemini-2.0-flash-exp",
+        model: str = "gemini-2.5-flash",
         max_retries: int = None
     ) -> str:
         """
@@ -77,6 +85,9 @@ class GeminiKeyRotator:
                 error_str = str(e)
                 last_error = e
                 
+                # Print full error for debugging
+                print(f"❌ Gemini API Error (Key #{self.current_key_index+1}): {error_str}")
+                
                 # Check if it's a recoverable error (rate limit, leaked key, quota, etc.)
                 is_recoverable = (
                     "429" in error_str or 
@@ -84,11 +95,19 @@ class GeminiKeyRotator:
                     "permission" in error_str.lower() or
                     "quota" in error_str.lower() or 
                     "rate" in error_str.lower() or
-                    "leaked" in error_str.lower()
+                    "leaked" in error_str.lower() or
+                    "api key" in error_str.lower() or
+                    "invalid" in error_str.lower()
                 )
                 
+                # Special handling for quota errors
+                if "429" in error_str and "quota" in error_str.lower():
+                    print(f"⚠ QUOTA EXCEEDED on Key #{self.current_key_index+1}")
+                    print(f"   All API keys may have exceeded their quota.")
+                    print(f"   Please check: https://ai.google.dev/gemini-api/docs/rate-limits")
+                
                 if is_recoverable:
-                    print(f"⚠ API Key #{self.current_key_index+1} encountered error: {error_str[:100]}")
+                    print(f"⚠ API Key #{self.current_key_index+1} encountered recoverable error: {error_str[:200]}")
                     
                     # Try rotating to next key
                     if self._rotate_key():
@@ -97,11 +116,14 @@ class GeminiKeyRotator:
                         continue
                     else:
                         # No more keys to try
-                        return f"All API keys failed. Please check your API keys. Error: {error_str}"
+                        print(f"❌ All API keys exhausted. Last error: {error_str[:200]}")
+                        if "429" in error_str and "quota" in error_str.lower():
+                            return f"All API keys have exceeded their quota. Please check your Google Cloud billing or wait for quota reset. See: https://ai.google.dev/gemini-api/docs/rate-limits"
+                        return f"All API keys failed. Please check your API keys. Last error: {error_str[:200]}"
                 else:
                     # Non-recoverable error, don't retry
-                    print(f"Gemini API Error: {error_str}")
-                    return f"I apologize, but I'm having trouble generating a response. Please try again."
+                    print(f"❌ Non-recoverable Gemini API Error: {error_str[:200]}")
+                    return f"Gemini API Error: {error_str[:200]}"
             
             attempts += 1
         
@@ -111,7 +133,7 @@ class GeminiKeyRotator:
     async def generate_content_stream(
         self,
         prompt: str,
-        model: str = "gemini-2.0-flash-exp",
+        model: str = "gemini-2.5-flash",
         max_retries: int = None
     ) -> AsyncIterator[str]:
         """

@@ -116,19 +116,35 @@ Return ONLY the JSON object, nothing else:
         # Call Gemini API using shared service
         response = await gemini_service.generate_content(prompt)
         
+        # Check if response is an error message (gemini_service returns error strings)
+        if not response or response.startswith("AI service unavailable") or response.startswith("All API keys failed") or response.startswith("Unable to generate") or response.startswith("I apologize"):
+            raise Exception(f"Gemini API Error: {response}")
+        
         # Extract and parse JSON from response
         response_text = response.strip()
+        
         # Remove markdown code blocks if present
         if response_text.startswith("```"):
             response_text = re.sub(r'^```(?:json)?\n?', '', response_text)
             response_text = re.sub(r'\n?```$', '', response_text)
         
+        # Try to find JSON object in response (in case there's extra text)
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            response_text = json_match.group(0)
+        
         # Parse JSON
-        profile_data = json.loads(response_text)
+        try:
+            profile_data = json.loads(response_text)
+        except json.JSONDecodeError as json_err:
+            print(f"❌ JSON Parse Error. Response text (first 500 chars): {response_text[:500]}")
+            raise Exception(f"Failed to parse AI response as JSON: {str(json_err)}. Response: {response_text[:200]}")
         
         return profile_data
         
     except json.JSONDecodeError as e:
+        print(f"❌ JSON Decode Error: {str(e)}")
         raise Exception(f"Failed to parse AI response as JSON: {str(e)}")
     except Exception as e:
+        print(f"❌ Resume extraction error: {str(e)}")
         raise Exception(f"Failed to analyze resume with AI: {str(e)}")

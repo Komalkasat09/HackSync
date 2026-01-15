@@ -7,6 +7,7 @@ from auth.routes import router as auth_router
 from career_recommender.routes import router as career_router
 from learning_guide.routes import router as learning_router
 from interview_prep.routes import router as interview_router
+from interview_prep.voice_interview_routes import router as voice_interview_router
 from user_profile.routes import router as profile_router
 from ai_resume_builder.routes import router as ai_resume_router
 from job_tracker.routes import router as job_tracker_router
@@ -47,6 +48,7 @@ app.include_router(ai_resume_router, prefix="", tags=["AI Resume Builder"])
 app.include_router(career_router, prefix="/api/career", tags=["Career Recommender"])
 app.include_router(learning_router, prefix="/api/learning", tags=["Learning Guide"])
 app.include_router(interview_router, prefix="/api/interview", tags=["Interview Prep"])
+app.include_router(voice_interview_router, prefix="/api", tags=["Voice Interview"])
 app.include_router(job_tracker_router, prefix="/api/jobs", tags=["Job Tracker"])
 app.include_router(portfolio_router, prefix="/api", tags=["Portfolio"])
 app.include_router(job_application_router, prefix="/api", tags=["Job Application"])

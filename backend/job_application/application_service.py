@@ -170,6 +170,10 @@ CRITICAL: Return ONLY the JSON object. No markdown, no code blocks, no explanati
         # Call Gemini API
         response = await gemini_service.generate_content(prompt)
         
+        # Check for API key quota errors
+        if "Unable to generate response" in response or "All API keys failed" in response or "AI service unavailable" in response:
+            raise Exception(f"API quota exceeded: {response}")
+        
         # Clean response
         response_text = response.strip()
         
@@ -191,7 +195,7 @@ CRITICAL: Return ONLY the JSON object. No markdown, no code blocks, no explanati
         
     except json.JSONDecodeError as e:
         print(f"JSON parsing error: {str(e)}")
-        print(f"Response text: {response_text[:500]}")
+        print(f"Response text: {response[:500] if response else 'No response'}")
         raise Exception(f"Failed to parse AI response as JSON: {str(e)}")
     except Exception as e:
         print(f"Error generating tailored application: {str(e)}")

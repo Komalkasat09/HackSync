@@ -196,11 +196,18 @@ export default function ApplicationsPage() {
         setTailoredResume(data.tailored_resume);
         setCoverLetter(data.cover_letter);
       } else {
-        alert(data.message || "Failed to generate application materials");
+        // Show specific error message from backend
+        const errorMsg = data.detail || data.message || "Failed to generate application materials";
+        
+        if (errorMsg.includes("API quota") || errorMsg.includes("temporarily unavailable")) {
+          alert("⚠️ AI Service Temporarily Unavailable\n\nOur AI service has exceeded its quota limits. Please try again later or contact support to increase limits.");
+        } else {
+          alert(errorMsg);
+        }
       }
     } catch (error) {
       console.error("Error generating application:", error);
-      alert("Failed to generate application materials");
+      alert("❌ Unable to connect to the server. Please check your connection and try again.");
     } finally {
       setGenerating(false);
     }

@@ -233,9 +233,16 @@ async def extract_resume(
         pdf_content = await file.read()
         
         # Extract profile data using Gemini AI
-        print(f"Extracting resume for user: {user_id}")
-        extracted_data = await extract_profile_from_resume(pdf_content)
-        print(f"Extracted data: {extracted_data}")
+        print(f"📄 Extracting resume for user: {user_id}")
+        try:
+            extracted_data = await extract_profile_from_resume(pdf_content)
+            print(f"✅ Extracted data successfully: {len(extracted_data.get('skills', []))} skills found")
+        except Exception as extract_error:
+            print(f"❌ Resume extraction failed: {str(extract_error)}")
+            print(f"❌ Error type: {type(extract_error).__name__}")
+            import traceback
+            print(f"❌ Traceback: {traceback.format_exc()}")
+            raise extract_error
         
         # Update user profile with extracted data
         await db.user_profiles.update_one(

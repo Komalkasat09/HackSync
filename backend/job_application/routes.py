@@ -64,8 +64,17 @@ async def generate_application(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error generating application: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate application: {str(e)}")
+        error_msg = str(e)
+        print(f"Error generating application: {error_msg}")
+        
+        # Check if it's an API quota error
+        if "API quota exceeded" in error_msg or "Unable to generate response" in error_msg:
+            raise HTTPException(
+                status_code=503, 
+                detail="AI service is temporarily unavailable due to API quota limits. Please try again later or contact support."
+            )
+        
+        raise HTTPException(status_code=500, detail=f"Failed to generate application: {error_msg}")
 
 @router.post("/save", response_model=ApplicationResponse)
 async def save_application(

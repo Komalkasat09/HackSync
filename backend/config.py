@@ -24,13 +24,20 @@ class Settings(BaseSettings):
     GEMINI_API_KEY_3: Optional[str] = os.getenv("GEMINI_API_KEY_3", None)
     GEMINI_API_KEY_4: Optional[str] = os.getenv("GEMINI_API_KEY_4", None)
     GEMINI_API_KEY_5: Optional[str] = os.getenv("GEMINI_API_KEY_5", None)
-    GEMINI_MODEL: str = "gemini-2.0-flash-exp"  # Standardized model across all services
+    GEMINI_MODEL: str = "gemini-2.5-flash"  # Standardized model across all services
     
     # Tavily API (optional - for Udemy/Coursera search)
     TAVILY_API_KEY: Optional[str] = os.getenv("TAVILY_API_KEY", None)
     
     # Apify API (for LinkedIn job scraping)
     APIFY_API_KEY: Optional[str] = os.getenv("APIFY_API_KEY", None)
+    
+    # Vapi.ai Configuration (for AI Voice Interviews)
+    VAPI_API_KEY: Optional[str] = os.getenv("VAPI_API_KEY", None)
+    
+    # n8n Webhook URLs (for AI Interview workflows)
+    N8N_CREATE_INTERVIEW_WEBHOOK: Optional[str] = os.getenv("N8N_CREATE_INTERVIEW_WEBHOOK", None)
+    N8N_EVALUATE_INTERVIEW_WEBHOOK: Optional[str] = os.getenv("N8N_EVALUATE_INTERVIEW_WEBHOOK", None)
     
     # API Configuration
     API_VERSION: str = "v1"
