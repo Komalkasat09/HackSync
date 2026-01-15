@@ -11,3 +11,4 @@ python-multipart
 pymongo
 PyPDF2
 google-generativeai
+yt-dlp

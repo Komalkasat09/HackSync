@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   User,
   UserCircle,    // Your Profile
-  Sparkles       // AI Resume Builder
+  Sparkles,      // AI Resume Builder
+  GitBranch      // AI Roadmap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -22,8 +23,8 @@ const menuItems = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard, shortText: "Home" },
   { name: "Your Profile", href: "/dashboard/your-profile", icon: UserCircle, shortText: "Profile" },
   { name: "AI Resume Builder", href: "/dashboard/ai-resume", icon: Sparkles, shortText: "AI Resume" },
+  { name: "Learning Roadmap", href: "/dashboard/roadmap", icon: GitBranch, shortText: "Roadmap" },
   { name: "Career Recommender", href: "/dashboard/career", icon: Target, shortText: "Career" },
-  { name: "Learning Guide", href: "/dashboard/learning", icon: BookOpen, shortText: "Learn" },
   { name: "Interview Prep", href: "/dashboard/interview", icon: Briefcase, shortText: "Interview" },
 ];
 

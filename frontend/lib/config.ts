@@ -76,5 +76,8 @@ export const API_ENDPOINTS = {
     GET: (id: string) => `${API_BASE_URL}/deepfake/${id}`,
     DELETE: (id: string) => `${API_BASE_URL}/deepfake/${id}`,
   },
+  LEARNING: {
+    GENERATE_ROADMAP: `${API_BASE_URL}/api/learning/generate-roadmap`,
+  },
 } as const;
 
