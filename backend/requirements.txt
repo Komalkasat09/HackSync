@@ -14,3 +14,4 @@ google-genai
 yt-dlp
 httpx
 apscheduler
+python-jobspy

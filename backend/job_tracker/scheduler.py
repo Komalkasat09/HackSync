@@ -9,6 +9,7 @@ import logging
 import os
 from config import get_database
 from .tavily_scraper import tavily_scraper
+from .linkedin_scraper import job_scraper
 
 # Configure logging to file
 log_dir = os.path.join(os.path.dirname(__file__), '..', 'logs')
@@ -49,8 +50,14 @@ DEFAULT_JOB_KEYWORDS = [
     "cloud engineer",
     "mobile developer",
     "QA engineer",
-    "internship software"
+    "AI Engineer",
+    "Software Developer",
+    "Python Developer",
+    "React Developer"
 ]
+
+# Locations to search
+DEFAULT_LOCATIONS = ["India", "United States", "Remote"]
 
 class JobScheduler:
     """Manages periodic job scraping"""
@@ -105,9 +112,32 @@ class JobScheduler:
                     logger.info("="*80)
                     return
             
-            # Fetch jobs using Tavily
-            logger.info(f"🌐 Fetching jobs from web scraping...")
-            jobs = await tavily_scraper.fetch_and_parse_jobs(DEFAULT_JOB_KEYWORDS)
+            # Fetch jobs using LinkedIn Scraper (Apify) and Tavily as backup
+            logger.info(f"🔗 Fetching jobs from LinkedIn (Apify)...")
+            linkedin_jobs = []
+            
+            try:
+                # Use LinkedIn scraper for better quality jobs
+                linkedin_jobs = await job_scraper.scrape_jobs_by_keywords(
+                    keywords_list=DEFAULT_JOB_KEYWORDS[:5],  # Limit to first 5 keywords
+                    locations=DEFAULT_LOCATIONS,
+                    max_jobs_per_search=20  # 20 jobs per keyword-location combo
+                )
+                logger.info(f"✅ LinkedIn: Retrieved {len(linkedin_jobs)} job postings")
+            except Exception as e:
+                logger.error(f"❌ LinkedIn scraper failed: {str(e)}")
+            
+            # Also fetch from Tavily as backup/supplement
+            logger.info(f"🌐 Fetching additional jobs from Tavily...")
+            tavily_jobs = []
+            try:
+                tavily_jobs = await tavily_scraper.fetch_and_parse_jobs(DEFAULT_JOB_KEYWORDS[:10])
+                logger.info(f"✅ Tavily: Retrieved {len(tavily_jobs)} job postings")
+            except Exception as e:
+                logger.error(f"❌ Tavily scraper failed: {str(e)}")
+            
+            # Combine jobs from both sources
+            jobs = linkedin_jobs + tavily_jobs
             
             if not jobs:
                 logger.warning("⚠️  WARNING: No jobs fetched from Tavily")
@@ -199,6 +229,145 @@ class JobScheduler:
             logger.error("")
         finally:
             self.is_scraping = False  # Reset flag after scraping
+    
+    async def force_scrape_and_save_jobs(self):
+        """
+        Force job scraping (bypasses 24-hour check)
+        Used for manual refresh
+        """
+        # Prevent concurrent scraping
+        if self.is_scraping:
+            logger.info("⏭️  SKIPPING: Scraping already in progress")
+            return {"success": False, "message": "Scraping already in progress"}
+        
+        self.is_scraping = True
+        
+        try:
+            logger.info("="*80)
+            logger.info("🔄 STARTING FORCED JOB SCRAPING (MANUAL REFRESH)")
+            logger.info(f"📅 Scrape Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}")
+            logger.info(f"🔍 Keywords: {len(DEFAULT_JOB_KEYWORDS)} job search terms")
+            logger.info("="*80)
+            start_time = datetime.utcnow()
+            
+            # Get database
+            db = await get_database()
+            
+            # Fetch jobs using LinkedIn Scraper (Apify) and Tavily as backup
+            logger.info(f"🔗 Fetching jobs from LinkedIn (Apify)...")
+            linkedin_jobs = []
+            
+            try:
+                # Use LinkedIn scraper for better quality jobs
+                linkedin_jobs = await job_scraper.scrape_jobs_by_keywords(
+                    keywords_list=DEFAULT_JOB_KEYWORDS[:5],  # Limit to first 5 keywords
+                    locations=DEFAULT_LOCATIONS,
+                    max_jobs_per_search=20  # 20 jobs per keyword-location combo
+                )
+                logger.info(f"✅ LinkedIn: Retrieved {len(linkedin_jobs)} job postings")
+            except Exception as e:
+                logger.error(f"❌ LinkedIn scraper failed: {str(e)}")
+            
+            # Also fetch from Tavily as backup/supplement
+            logger.info(f"🌐 Fetching additional jobs from Tavily...")
+            tavily_jobs = []
+            try:
+                tavily_jobs = await tavily_scraper.fetch_and_parse_jobs(DEFAULT_JOB_KEYWORDS[:10])
+                logger.info(f"✅ Tavily: Retrieved {len(tavily_jobs)} job postings")
+            except Exception as e:
+                logger.error(f"❌ Tavily scraper failed: {str(e)}")
+            
+            # Combine jobs from both sources
+            jobs = linkedin_jobs + tavily_jobs
+            
+            if not jobs:
+                logger.warning("⚠️  WARNING: No jobs fetched from any source")
+                logger.info("="*80)
+                return {"success": False, "message": "No jobs fetched"}
+            
+            logger.info(f"📦 Retrieved {len(jobs)} job postings total")
+            
+            # Count by source
+            source_counts = {}
+            for job in jobs:
+                source = job.get("source") or "unknown"
+                source_counts[source] = source_counts.get(source, 0) + 1
+            
+            logger.info("📊 Jobs by source:")
+            for source, count in source_counts.items():
+                logger.info(f"   • {source.capitalize()}: {count} jobs")
+            
+            # Save jobs to MongoDB
+            logger.info("💾 Saving jobs to MongoDB...")
+            saved_count = 0
+            updated_count = 0
+            skipped_count = 0
+            
+            for job in jobs:
+                result = await db.jobs.update_one(
+                    {"job_id": job["job_id"]},
+                    {"$set": job},
+                    upsert=True
+                )
+                
+                if result.upserted_id:
+                    saved_count += 1
+                elif result.modified_count > 0:
+                    updated_count += 1
+                else:
+                    skipped_count += 1
+            
+            logger.info(f"✅ Database operations complete:")
+            logger.info(f"   • {saved_count} new jobs added")
+            logger.info(f"   • {updated_count} existing jobs updated")
+            logger.info(f"   • {skipped_count} jobs unchanged (duplicates)")
+            
+            # Get total jobs in database
+            total_db_jobs = await db.jobs.count_documents({})
+            logger.info(f"📚 Total jobs in database: {total_db_jobs}")
+            
+            # Update scraper stats
+            stats = {
+                "total_scraped": len(jobs),
+                "saved_new": saved_count,
+                "updated_existing": updated_count,
+                "skipped_duplicates": skipped_count,
+                "source_breakdown": source_counts,
+                "last_scrape": datetime.utcnow().isoformat(),
+                "last_scrape_time": datetime.utcnow(),
+                "keywords_used": DEFAULT_JOB_KEYWORDS,
+                "total_in_database": total_db_jobs,
+                "scrape_type": "manual_refresh"
+            }
+            
+            await db.job_scraper_stats.insert_one(stats)
+            
+            elapsed = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(f"⏱️  Scraping completed in {elapsed:.2f} seconds")
+            logger.info("="*80)
+            
+            return {
+                "success": True,
+                "message": f"Successfully scraped {len(jobs)} jobs",
+                "stats": {
+                    "total_scraped": len(jobs),
+                    "saved_new": saved_count,
+                    "updated_existing": updated_count,
+                    "sources": source_counts
+                }
+            }
+            
+        except Exception as e:
+            logger.error("="*80)
+            logger.error(f"❌ FORCED JOB SCRAPING FAILED")
+            logger.error(f"Error: {str(e)}")
+            logger.error(f"Type: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback:\n{traceback.format_exc()}")
+            logger.error("="*80)
+            return {"success": False, "message": f"Scraping failed: {str(e)}"}
+        finally:
+            self.is_scraping = False
     
     def start(self):
         """Start the scheduler"""

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Briefcase, MapPin, TrendingUp, ExternalLink, Bookmark, CheckCircle, Filter, Building2 } from "lucide-react";
+import { Briefcase, MapPin, TrendingUp, ExternalLink, Bookmark, CheckCircle, Filter, Building2, RefreshCw, Search, X, Award } from "lucide-react";
 
 interface Job {
   job_id: string;
@@ -31,6 +31,15 @@ export default function JobsPage() {
   const [userSkills, setUserSkills] = useState<string[]>([]);
   const [filterSource, setFilterSource] = useState<string>("all");
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
+  
+  // New filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterLocation, setFilterLocation] = useState<string>("all");
+  const [filterJobType, setFilterJobType] = useState<string>("all");
+  const [filterMinSalary, setFilterMinSalary] = useState<string>("0");
+  const [showFilters, setShowFilters] = useState(true);
 
   useEffect(() => {
     fetchRelevantJobs();
@@ -91,6 +100,41 @@ export default function JobsPage() {
     }
   };
 
+  const refreshJobs = async () => {
+    setIsRefreshing(true);
+    setRefreshMessage(null);
+    
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:8000/api/jobs/trigger-scrape", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setRefreshMessage(
+          `✅ Successfully scraped ${data.stats?.total_scraped || 0} jobs! (${data.stats?.saved_new || 0} new, ${data.stats?.updated_existing || 0} updated)`
+        );
+        // Refresh the job list after 2 seconds
+        setTimeout(() => {
+          fetchRelevantJobs();
+          setRefreshMessage(null);
+        }, 2000);
+      } else {
+        setRefreshMessage(`❌ ${data.message || "Failed to refresh jobs"}`);
+      }
+    } catch (error) {
+      console.error("Error refreshing jobs:", error);
+      setRefreshMessage("❌ Failed to refresh jobs. Please try again.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const getMatchColor = (score: number) => {
     if (score >= 80) return "text-green-600 bg-green-50 border-green-200";
     if (score >= 60) return "text-blue-600 bg-blue-50 border-blue-200";
@@ -103,13 +147,71 @@ export default function JobsPage() {
       linkedin: "bg-blue-100 text-blue-800",
       indeed: "bg-red-100 text-red-800",
       internshala: "bg-purple-100 text-purple-800",
+      zip_recruiter: "bg-green-100 text-green-800",
+      glassdoor: "bg-orange-100 text-orange-800",
     };
     return colors[source] || "bg-gray-100 text-gray-800";
   };
 
-  const filteredJobs = filterSource === "all" 
-    ? jobs 
-    : jobs.filter((j) => j.job.source === filterSource);
+  // Extract unique locations and job types from jobs
+  const uniqueLocations = Array.from(new Set(jobs.map(j => j.job.location))).filter(Boolean).sort();
+  const uniqueJobTypes = Array.from(new Set(jobs.map(j => j.job.job_type))).filter(Boolean).sort();
+
+  // Parse salary from string (e.g., "$50,000 - $70,000 yearly")
+  const parseSalary = (salaryStr?: string): number => {
+    if (!salaryStr) return 0;
+    const matches = salaryStr.match(/\$?([\d,]+)/g);
+    if (!matches || matches.length === 0) return 0;
+    const firstNum = matches[0].replace(/[^\d]/g, '');
+    return parseInt(firstNum) || 0;
+  };
+
+  // Apply all filters
+  const filteredJobs = jobs.filter((jobMatch) => {
+    const job = jobMatch.job;
+    const searchLower = searchQuery.toLowerCase();
+
+    // Search filter (company or job title)
+    if (searchQuery && !job.title.toLowerCase().includes(searchLower) && 
+        !job.company.toLowerCase().includes(searchLower)) {
+      return false;
+    }
+
+    // Source filter
+    if (filterSource !== "all" && job.source !== filterSource) {
+      return false;
+    }
+
+    // Location filter
+    if (filterLocation !== "all" && job.location !== filterLocation) {
+      return false;
+    }
+
+    // Job type filter
+    if (filterJobType !== "all" && job.job_type?.toLowerCase() !== filterJobType.toLowerCase()) {
+      return false;
+    }
+
+    // Salary filter
+    const minSalaryNum = parseInt(filterMinSalary);
+    if (minSalaryNum > 0) {
+      const jobSalary = parseSalary(job.salary);
+      if (jobSalary === 0 || jobSalary < minSalaryNum) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterSource("all");
+    setFilterLocation("all");
+    setFilterJobType("all");
+    setFilterMinSalary("0");
+  };
 
   if (loading) {
     return (
@@ -126,29 +228,162 @@ export default function JobsPage() {
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">Job Opportunities</h1>
-          <p className="text-muted-foreground">
-            {jobs.length} jobs matched to your {userSkills.length} skills
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-foreground mb-2">Job Opportunities</h1>
+            <p className="text-muted-foreground">
+              {jobs.length} jobs matched to your {userSkills.length} skills
+            </p>
+          </div>
+          <button
+            onClick={refreshJobs}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? "Scraping..." : "Refresh Jobs"}
+          </button>
         </div>
 
-        {/* Filters */}
-        <div className="bg-card rounded-lg shadow-sm p-4 mb-6 flex items-center gap-4 border border-border">
-          <Filter className="w-5 h-5 text-muted-foreground" />
-          <select
-            value={filterSource}
-            onChange={(e) => setFilterSource(e.target.value)}
-            className="px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-          >
-            <option value="all">All Sources</option>
-            <option value="linkedin">LinkedIn</option>
-            <option value="indeed">Indeed</option>
-            <option value="internshala">Internshala</option>
-          </select>
-          <div className="ml-auto text-sm text-muted-foreground">
-            {filteredJobs.length} jobs
+        {/* Refresh Message */}
+        {refreshMessage && (
+          <div className={`mb-4 p-4 rounded-lg ${
+            refreshMessage.startsWith('✅') 
+              ? 'bg-green-50 border border-green-200 text-green-800' 
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}>
+            {refreshMessage}
           </div>
+        )}
+
+        {/* Filters */}
+        <div className="bg-card rounded-lg shadow-sm border border-border mb-6">
+          {/* Filter Header */}
+          <div className="p-4 border-b border-border flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-muted-foreground" />
+              <h3 className="font-semibold text-foreground">Filters</h3>
+              <span className="text-sm text-muted-foreground">({filteredJobs.length} jobs)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={clearFilters}
+                className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
+              >
+                <X className="w-4 h-4" />
+                Clear All
+              </button>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                {showFilters ? "Hide" : "Show"}
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Content */}
+          {showFilters && (
+            <div className="p-4 space-y-4">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search by company or job title..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+
+              {/* Filter Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Source Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Source
+                  </label>
+                  <select
+                    value={filterSource}
+                    onChange={(e) => setFilterSource(e.target.value)}
+                    className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="all">All Sources</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="indeed">Indeed</option>
+                    <option value="zip_recruiter">ZipRecruiter</option>
+                    <option value="glassdoor">Glassdoor</option>
+                    <option value="internshala">Internshala</option>
+                  </select>
+                </div>
+
+                {/* Location Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Location
+                  </label>
+                  <select
+                    value={filterLocation}
+                    onChange={(e) => setFilterLocation(e.target.value)}
+                    className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="all">All Locations</option>
+                    {uniqueLocations.map((location) => (
+                      <option key={location} value={location}>
+                        {location}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Job Type Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Job Type
+                  </label>
+                  <select
+                    value={filterJobType}
+                    onChange={(e) => setFilterJobType(e.target.value)}
+                    className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="full-time">Full-Time</option>
+                    <option value="part-time">Part-Time</option>
+                    <option value="internship">Internship</option>
+                    <option value="contract">Contract</option>
+                    {uniqueJobTypes.map((type) => {
+                      if (["full-time", "part-time", "internship", "contract"].includes(type.toLowerCase())) return null;
+                      return (
+                        <option key={type} value={type.toLowerCase()}>
+                          {type}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Salary Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Min Salary
+                  </label>
+                  <select
+                    value={filterMinSalary}
+                    onChange={(e) => setFilterMinSalary(e.target.value)}
+                    className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="0">Any Salary</option>
+                    <option value="30000">$30,000+</option>
+                    <option value="50000">$50,000+</option>
+                    <option value="70000">$70,000+</option>
+                    <option value="100000">$100,000+</option>
+                    <option value="150000">$150,000+</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Job Cards */}
@@ -171,6 +406,21 @@ export default function JobsPage() {
                         <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getSourceBadge(job.source)}`}>
                           {job.source}
                         </span>
+                        {/* Complete Data Badge - Only show for jobs with ALL fields */}
+                        {job.salary && 
+                         job.company && 
+                         job.company.toLowerCase() !== 'nan' &&
+                         job.company.toLowerCase() !== 'unknown company' &&
+                         job.location && 
+                         job.location.toLowerCase() !== 'nan' &&
+                         job.location.toLowerCase() !== 'not specified' &&
+                         job.job_type && 
+                         job.job_type.toLowerCase() !== 'nan' && (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                            <Award className="w-3 h-3" />
+                            Verified
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-4 text-muted-foreground text-sm">
                         <div className="flex items-center gap-1">
@@ -186,13 +436,18 @@ export default function JobsPage() {
                             {job.job_type}
                           </span>
                         )}
+                        {job.salary && (
+                          <span className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium">
+                            {job.salary}
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {/* Match Score */}
                     <div className={`flex flex-col items-center px-4 py-3 rounded-lg border-2 ${getMatchColor(match_score)}`}>
                       <TrendingUp className="w-5 h-5 mb-1" />
-                      <span className="text-2xl font-bold">{match_score}%</span>
+                      <span className="text-2xl font-bold">{Math.round(match_score)}</span>
                       <span className="text-xs">Match</span>
                     </div>
                   </div>
@@ -206,7 +461,7 @@ export default function JobsPage() {
                       {matched_skills.slice(0, 5).map((skill, idx) => (
                         <span
                           key={idx}
-                          className="px-3 py-1 bg-green-50 text-green-700 text-sm rounded-full border border-green-200"
+                          className="px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded-full border border-blue-200"
                         >
                           ✓ {skill}
                         </span>

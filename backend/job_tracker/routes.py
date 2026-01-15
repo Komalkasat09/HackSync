@@ -44,6 +44,16 @@ async def get_relevant_jobs(
                 user_skills.append(str(skill))
         user_skills = [s for s in user_skills if s]
         
+        # Extract user interests
+        raw_interests = user_profile.get("interests", [])
+        user_interests = []
+        for interest in raw_interests:
+            if isinstance(interest, dict):
+                user_interests.append(interest.get("name", ""))
+            else:
+                user_interests.append(str(interest))
+        user_interests = [i for i in user_interests if i]
+        
         if not user_skills:
             return RelevantJobsResponse(
                 success=True,
@@ -66,8 +76,8 @@ async def get_relevant_jobs(
                 message="No jobs available yet. Jobs are fetched every 24 hours."
             )
         
-        # Rank jobs by relevance
-        ranked_jobs = job_matcher.rank_jobs(jobs, user_skills)
+        # Rank jobs by comprehensive relevance score (includes completeness and title matching)
+        ranked_jobs = job_matcher.rank_jobs(jobs, user_skills, user_interests)
         
         # Filter by minimum match score
         filtered_jobs = [j for j in ranked_jobs if j["match_score"] >= min_match]
@@ -298,18 +308,18 @@ async def trigger_manual_scrape(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Manually trigger job scraping (admin only)
+    Manually trigger job scraping (bypasses 24-hour restriction)
     """
     try:
         from .scheduler import job_scheduler
         
-        # Trigger scraping
-        await job_scheduler.scrape_and_save_jobs()
+        # Use force scrape to bypass 24-hour check
+        result = await job_scheduler.force_scrape_and_save_jobs()
         
-        return {
-            "success": True,
-            "message": "Job scraping triggered successfully"
-        }
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(status_code=400, detail=result["message"])
         
     except Exception as e:
         logger.error(f"Error triggering scrape: {e}")

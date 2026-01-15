@@ -295,6 +295,7 @@ async def chat_message_stream(request: ChatRequest):
             # Stream AI response
             full_response = ""
             references_sent = False
+            saved_references = []  # Store references for saving to DB
             
             async for chunk, references in career_counselor.generate_streaming_response(
                 user_message=request.message,
@@ -309,6 +310,7 @@ async def chat_message_stream(request: ChatRequest):
                 
                 # Send references (only once with first chunk)
                 if references and not references_sent:
+                    saved_references = references  # Save for DB storage
                     yield f"data: {json.dumps({'type': 'references', 'references': references})}\n\n"
                     references_sent = True
             
@@ -317,7 +319,7 @@ async def chat_message_stream(request: ChatRequest):
                 "role": "assistant",
                 "content": full_response,
                 "timestamp": datetime.utcnow().isoformat(),
-                "references": references if references_sent else [],
+                "references": saved_references,  # Use saved references
                 "metadata": {}
             }
             

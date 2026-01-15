@@ -1,200 +1,135 @@
 """
-LinkedIn Job Scraper using Apify API
-Uses the LinkedIn Jobs Scraper actor to fetch job postings
+Job Scraper using JobSpy library
+Scrapes jobs from LinkedIn, Indeed, ZipRecruiter, and Glassdoor
+GitHub: https://github.com/speedyapply/JobSpy
 """
 
-import httpx
+from jobspy import scrape_jobs
 import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import hashlib
 import logging
-from config import Settings
+import pandas as pd
 
 logger = logging.getLogger(__name__)
-settings = Settings()
-
-APIFY_API_KEY = settings.APIFY_API_KEY
-APIFY_ACTOR_ID = "curious_coder/linkedin-jobs-scraper"
-APIFY_API_BASE = "https://api.apify.com/v2"
 
 
-class LinkedInScraper:
+class JobSpyScraper:
     def __init__(self):
-        self.api_key = APIFY_API_KEY
-        self.actor_id = APIFY_ACTOR_ID
-        
-    async def search_linkedin_jobs(
-        self, 
-        keywords: str, 
+        self.supported_sites = ["linkedin", "indeed", "zip_recruiter", "glassdoor"]
+    
+    def scrape_jobs(
+        self,
+        search_term: str,
         location: str = "",
-        max_jobs: int = 100
+        results_wanted: int = 20,
+        site_name: List[str] = None,
+        job_type: str = None,
+        is_remote: bool = False
     ) -> List[Dict[str, Any]]:
         """
-        Search LinkedIn jobs using Apify actor
+        Scrape jobs using JobSpy library
         
         Args:
-            keywords: Job search keywords (e.g., "software engineer")
-            location: Location filter (e.g., "United States")
-            max_jobs: Maximum number of jobs to fetch
+            search_term: Job search keywords (e.g., "software engineer")
+            location: Location (e.g., "United States", "India")
+            results_wanted: Number of jobs to fetch
+            site_name: List of sites to scrape ["linkedin", "indeed", "zip_recruiter", "glassdoor"]
+            job_type: "fulltime", "parttime", "internship", "contract"
+            is_remote: Filter for remote jobs only
             
         Returns:
-            List of job dictionaries from Apify
+            List of job dictionaries
         """
         try:
-            # Construct LinkedIn search URL
-            search_query = keywords.replace(" ", "%20")
-            location_query = location.replace(" ", "%20") if location else ""
+            if site_name is None:
+                site_name = ["linkedin", "indeed"]
             
-            # Build LinkedIn jobs search URL
-            if location_query:
-                linkedin_url = f"https://www.linkedin.com/jobs/search/?keywords={search_query}&location={location_query}&pageNum=0"
-            else:
-                linkedin_url = f"https://www.linkedin.com/jobs/search/?keywords={search_query}&pageNum=0"
+            logger.info(f"🔍 Scraping jobs for: {search_term} in {location or 'All Locations'}")
+            logger.info(f"📊 Target: {results_wanted} jobs from {', '.join(site_name)}")
+            logger.info(f"🏠 Remote only: {is_remote}")
             
-            logger.info(f"🔍 Searching LinkedIn for: {keywords} in {location or 'All Locations'}")
-            logger.info(f"📊 Max jobs to fetch: {max_jobs}")
+            # Scrape jobs synchronously
+            jobs_df = scrape_jobs(
+                site_name=site_name,
+                search_term=search_term,
+                location=location,
+                results_wanted=results_wanted,
+                hours_old=72,  # Jobs posted in last 72 hours
+                country_indeed="India" if "india" in location.lower() else "USA",
+                job_type=job_type,
+                is_remote=is_remote
+            )
             
-            # Prepare Apify actor input with correct parameter names
-            actor_input = {
-                "urls": [linkedin_url],
-                "maxJobsPerQuery": max_jobs,
-                "scrapeCompanyDetails": True
-            }
+            if jobs_df is None or jobs_df.empty:
+                logger.warning(f"⚠️ No jobs found for {search_term}")
+                return []
             
-            # Start the actor run
-            async with httpx.AsyncClient(timeout=120.0) as client:
-                # Start actor - use the correct API endpoint format
-                start_url = f"{APIFY_API_BASE}/acts/curious_coder~linkedin-jobs-scraper/runs?token={self.api_key}"
-                logger.info(f"🚀 Starting Apify actor run...")
-                
-                start_response = await client.post(
-                    start_url,
-                    json=actor_input
-                )
-                
-                if start_response.status_code != 201:
-                    logger.error(f"❌ Failed to start actor: {start_response.status_code}")
-                    logger.error(f"Response: {start_response.text}")
-                    return []
-                
-                run_data = start_response.json()
-                run_id = run_data["data"]["id"]
-                logger.info(f"✅ Actor run started: {run_id}")
-                
-                # Wait for actor to finish with early check
-                run_url = f"{APIFY_API_BASE}/actor-runs/{run_id}?token={self.api_key}"
-                dataset_url_template = f"{APIFY_API_BASE}/actor-runs/{run_id}/dataset/items?token={self.api_key}"
-                max_wait = 120  # 2 minutes max wait
-                wait_time = 0
-                abort_url = f"{APIFY_API_BASE}/actor-runs/{run_id}/abort?token={self.api_key}"
-                
-                while wait_time < max_wait:
-                    await asyncio.sleep(5)
-                    wait_time += 5
-                    
-                    status_response = await client.get(run_url)
-                    if status_response.status_code != 200:
-                        logger.error(f"❌ Failed to check run status: {status_response.status_code}")
-                        return []
-                    
-                    status_data = status_response.json()
-                    status = status_data["data"]["status"]
-                    
-                    # Check if we have enough jobs already and abort
-                    if status == "RUNNING":
-                        check_response = await client.get(dataset_url_template)
-                        if check_response.status_code == 200:
-                            current_jobs = check_response.json()
-                            if len(current_jobs) >= max_jobs:
-                                logger.info(f"🛑 Found {len(current_jobs)} jobs, aborting actor run...")
-                                await client.post(abort_url)
-                                await asyncio.sleep(2)  # Wait for abort
-                                break
-                    
-                    if status == "SUCCEEDED":
-                        logger.info(f"✅ Actor run completed successfully!")
-                        break
-                    elif status in ["FAILED", "TIMED-OUT"]:
-                        logger.error(f"❌ Actor run {status}")
-                        return []
-                    elif status == "ABORTED":
-                        logger.info(f"✅ Actor run aborted after collecting enough jobs")
-                        break
-                    
-                    logger.info(f"⏳ Waiting for actor to complete... ({wait_time}s)")
-                
-                if wait_time >= max_wait:
-                    logger.warning(f"⚠️ Actor still running after {max_wait}s, aborting...")
-                    await client.post(abort_url)
-                    await asyncio.sleep(2)
-                
-                # Get results from dataset (limit to max_jobs)
-                dataset_id = status_data["data"]["defaultDatasetId"]
-                dataset_url = f"{APIFY_API_BASE}/datasets/{dataset_id}/items?token={self.api_key}&limit={max_jobs}"
-                
-                results_response = await client.get(dataset_url)
-                if results_response.status_code != 200:
-                    logger.error(f"❌ Failed to fetch results: {results_response.status_code}")
-                    return []
-                
-                jobs = results_response.json()
-                # Extra safety: limit results
-                jobs = jobs[:max_jobs]
-                logger.info(f"✅ Fetched {len(jobs)} jobs from LinkedIn (limited to {max_jobs})")
-                return jobs
-                
+            # Convert DataFrame to list of dicts
+            jobs_list = jobs_df.to_dict('records')
+            logger.info(f"✅ Found {len(jobs_list)} jobs")
+            
+            return jobs_list
+            
         except Exception as e:
-            logger.error(f"❌ Error searching LinkedIn jobs: {str(e)}")
+            logger.error(f"❌ Error scraping jobs: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return []
     
-    async def parse_linkedin_job(self, apify_job: Dict[str, Any]) -> Dict[str, Any]:
+    def parse_jobspy_result(self, job_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Parse Apify LinkedIn job result into our job schema format
+        Parse JobSpy result into our job schema format
         
         Args:
-            apify_job: Raw job data from Apify actor
+            job_data: Raw job data from JobSpy
             
         Returns:
             Parsed job dictionary matching our schema
         """
         try:
-            # Extract basic fields
-            title = apify_job.get("title", "").strip()
-            company = apify_job.get("company", "Unknown Company").strip()
-            location = apify_job.get("location", "Not specified").strip()
-            description = apify_job.get("description", "")
-            url = apify_job.get("link", "")
+            # JobSpy provides clean data already
+            title = str(job_data.get("title", "")).strip()
+            company = str(job_data.get("company", "Unknown Company")).strip()
+            location = str(job_data.get("location", "Not specified")).strip()
+            description = str(job_data.get("description", ""))
+            url = str(job_data.get("job_url", ""))
             
-            # Extract salary if available
+            # Extract salary - JobSpy provides min_amount and max_amount
             salary = None
-            salary_info = apify_job.get("salary")
-            if salary_info:
-                salary = str(salary_info).strip()
+            min_salary = job_data.get("min_amount")
+            max_salary = job_data.get("max_amount")
+            interval = job_data.get("interval", "")
+            currency = job_data.get("currency", "")
             
-            # Parse job type and experience level from description or seniority
-            job_type = "full-time"
-            experience_level = "Not specified"
+            if min_salary and max_salary:
+                salary = f"{currency}{min_salary:,.0f} - {currency}{max_salary:,.0f} {interval}"
+            elif min_salary:
+                salary = f"{currency}{min_salary:,.0f}+ {interval}"
             
-            description_lower = description.lower()
-            
-            # Detect job type
-            if any(term in description_lower for term in ["intern", "internship"]):
-                job_type = "internship"
-            elif any(term in description_lower for term in ["contract", "contractor"]):
-                job_type = "contract"
-            elif any(term in description_lower for term in ["part-time", "part time"]):
+            # JobSpy provides job_type directly
+            job_type = str(job_data.get("job_type", "fulltime")).lower()
+            if job_type == "fulltime":
+                job_type = "full-time"
+            elif job_type == "parttime":
                 job_type = "part-time"
             
-            # Detect experience level
-            seniority = apify_job.get("seniority", "").lower()
-            if seniority:
-                experience_level = seniority.title()
-            elif any(term in description_lower for term in ["entry level", "junior", "graduate"]):
+            experience_level = "Not specified"
+            is_remote = job_data.get("is_remote", False)
+            
+            description_lower = description.lower()
+            title_lower = title.lower()
+            
+            # Detect experience level from title and description
+            if any(term in title_lower for term in ["intern", "internship"]):
+                experience_level = "Internship"
+                job_type = "internship"
+            elif any(term in title_lower + description_lower for term in ["entry", "junior", "graduate", "fresher"]):
                 experience_level = "Entry level"
-            elif any(term in description_lower for term in ["senior", "lead", "principal"]):
+            elif any(term in title_lower for term in ["senior", "sr.", "lead", "principal", "staff"]):
                 experience_level = "Senior"
-            elif any(term in description_lower for term in ["mid-level", "intermediate"]):
+            elif any(term in title_lower + description_lower for term in ["mid", "intermediate"]):
                 experience_level = "Mid-Senior level"
             
             # Extract skills from description
@@ -209,7 +144,8 @@ class LinkedInScraper:
                 "Django", "Flask", "FastAPI", "Spring Boot", "Express.js",
                 "HTML", "CSS", "Sass", "Tailwind", "Bootstrap",
                 "Linux", "Unix", "Bash", "Shell Scripting",
-                "Data Science", "Data Analysis", "Pandas", "NumPy", "Tableau", "Power BI"
+                "Data Science", "Data Analysis", "Pandas", "NumPy", "Tableau", "Power BI",
+                "AI", "Artificial Intelligence", "LLM", "Generative AI"
             ]
             
             required_skills = []
@@ -219,27 +155,24 @@ class LinkedInScraper:
                 if skill.lower() in full_text:
                     required_skills.append(skill)
             
-            # Remove duplicates and limit to unique skills
+            # Remove duplicates
             required_skills = list(set(required_skills))
             
-            # Generate unique job ID
-            job_id = hashlib.md5(f"{company}_{title}_{url}".encode()).hexdigest()
+            # Generate unique job ID from URL or fallback
+            job_id = str(job_data.get("job_id", hashlib.md5(f"{company}_{title}_{url}".encode()).hexdigest()))
             
-            # Extract application link
-            apply_link = apify_job.get("applyLink") or url
+            # JobSpy provides the source site
+            source = str(job_data.get("site", "unknown")).lower()
             
-            # Extract company details if available
-            company_details = apify_job.get("companyDetails", {})
-            company_info = None
-            if company_details:
-                company_info = {
-                    "name": company_details.get("name", company),
-                    "description": company_details.get("description", ""),
-                    "website": company_details.get("website", ""),
-                    "industry": company_details.get("industry", ""),
-                    "company_size": company_details.get("companySize", ""),
-                    "headquarters": company_details.get("headquarters", "")
-                }
+            # Get posted date
+            date_posted = job_data.get("date_posted")
+            if date_posted and hasattr(date_posted, 'isoformat'):
+                posted_date = date_posted.isoformat()
+            else:
+                posted_date = str(date_posted) if date_posted else datetime.utcnow().isoformat()
+            
+            # Company URL from JobSpy
+            company_url = str(job_data.get("company_url", ""))
             
             # Build the parsed job
             parsed_job = {
@@ -253,31 +186,29 @@ class LinkedInScraper:
                 "job_type": job_type,
                 "experience_level": experience_level,
                 "url": url,
-                "apply_link": apply_link,
-                "source": "linkedin",
-                "posted_date": apify_job.get("postedTime", datetime.utcnow().isoformat()),
+                "apply_link": url,
+                "source": source,
+                "posted_date": posted_date,
                 "scraped_at": datetime.utcnow().isoformat(),
-                "company_info": company_info,
-                "raw_data": {
-                    "applicants": apify_job.get("applicants"),
-                    "seniority": apify_job.get("seniority"),
-                    "employment_type": apify_job.get("employmentType"),
-                    "job_functions": apify_job.get("jobFunctions"),
-                    "industries": apify_job.get("industries")
-                }
+                "is_remote": is_remote,
+                "company_info": {
+                    "name": company,
+                    "url": company_url
+                } if company_url else None
             }
             
             return parsed_job
             
         except Exception as e:
-            logger.error(f"❌ Error parsing LinkedIn job: {str(e)}")
+            logger.error(f"❌ Error parsing job: {str(e)}")
+            logger.error(f"Job data: {job_data}")
             return None
     
     async def scrape_jobs_by_keywords(
         self, 
         keywords_list: List[str],
         locations: List[str] = [""],
-        max_jobs_per_search: int = 50
+        max_jobs_per_search: int = 20
     ) -> List[Dict[str, Any]]:
         """
         Scrape jobs for multiple keywords and locations
@@ -292,25 +223,38 @@ class LinkedInScraper:
         """
         all_jobs = []
         
+        # Run in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        
         for keyword in keywords_list:
             for location in locations:
-                logger.info(f"🔍 Searching: {keyword} in {location or 'All Locations'}")
-                
-                # Search LinkedIn
-                raw_jobs = await self.search_linkedin_jobs(
-                    keywords=keyword,
-                    location=location,
-                    max_jobs=max_jobs_per_search
-                )
-                
-                # Parse each job
-                for raw_job in raw_jobs:
-                    parsed_job = await self.parse_linkedin_job(raw_job)
-                    if parsed_job:
-                        all_jobs.append(parsed_job)
-                
-                # Small delay between searches to be respectful
-                await asyncio.sleep(2)
+                try:
+                    logger.info(f"🔍 Searching: {keyword} in {location or 'All Locations'}")
+                    
+                    # Run JobSpy scraping in thread pool (it's synchronous)
+                    raw_jobs = await loop.run_in_executor(
+                        None,
+                        self.scrape_jobs,
+                        keyword,
+                        location,
+                        max_jobs_per_search,
+                        ["linkedin", "indeed"],  # Scrape from both sites
+                        None,  # job_type
+                        False  # is_remote
+                    )
+                    
+                    # Parse each job
+                    for raw_job in raw_jobs:
+                        parsed_job = self.parse_jobspy_result(raw_job)
+                        if parsed_job:
+                            all_jobs.append(parsed_job)
+                    
+                    # Small delay between searches
+                    await asyncio.sleep(1)
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error scraping {keyword} in {location}: {str(e)}")
+                    continue
         
         # Remove duplicates based on job_id
         unique_jobs = {}
@@ -322,4 +266,4 @@ class LinkedInScraper:
 
 
 # Singleton instance
-linkedin_scraper = LinkedInScraper()
+job_scraper = JobSpyScraper()

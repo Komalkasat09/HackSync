@@ -79,9 +79,18 @@ class GeminiKeyRotator:
                 error_str = str(e)
                 last_error = e
                 
-                # Check if it's a rate limit error (429 or quota exceeded)
-                if "429" in error_str or "quota" in error_str.lower() or "rate" in error_str.lower():
-                    print(f"⚠ API Key #{self.current_key_index+1} hit rate limit")
+                # Check if it's a recoverable error (rate limit, leaked key, quota, etc.)
+                is_recoverable = (
+                    "429" in error_str or 
+                    "403" in error_str or 
+                    "permission" in error_str.lower() or
+                    "quota" in error_str.lower() or 
+                    "rate" in error_str.lower() or
+                    "leaked" in error_str.lower()
+                )
+                
+                if is_recoverable:
+                    print(f"⚠ API Key #{self.current_key_index+1} encountered error: {error_str[:100]}")
                     
                     # Try rotating to next key
                     if self._rotate_key():
@@ -90,9 +99,9 @@ class GeminiKeyRotator:
                         continue
                     else:
                         # No more keys to try
-                        return f"All API keys have hit rate limits. Please try again later. Error: {error_str}"
+                        return f"All API keys failed. Please check your API keys. Error: {error_str}"
                 else:
-                    # Non-rate-limit error, don't retry
+                    # Non-recoverable error, don't retry
                     print(f"Gemini API Error: {error_str}")
                     return f"I apologize, but I'm having trouble generating a response. Please try again."
             
@@ -122,7 +131,8 @@ class GeminiKeyRotator:
         
         while attempts < max_retries:
             try:
-                response = await self.client.aio.models.generate_content(
+                # Use generate_content_stream for streaming responses (await the coroutine)
+                stream = await self.client.aio.models.generate_content_stream(
                     model=model,
                     contents=prompt,
                     config=types.GenerateContentConfig(
@@ -131,7 +141,7 @@ class GeminiKeyRotator:
                 )
                 
                 # Stream the response
-                async for chunk in response:
+                async for chunk in stream:
                     if chunk.text:
                         yield chunk.text
                 
@@ -140,9 +150,18 @@ class GeminiKeyRotator:
             except Exception as e:
                 error_str = str(e)
                 
-                # Check if it's a rate limit error
-                if "429" in error_str or "quota" in error_str.lower() or "rate" in error_str.lower():
-                    print(f"⚠ API Key #{self.current_key_index+1} hit rate limit during streaming")
+                # Check if it's a recoverable error (rate limit, leaked key, quota, etc.)
+                is_recoverable = (
+                    "429" in error_str or 
+                    "403" in error_str or 
+                    "permission" in error_str.lower() or
+                    "quota" in error_str.lower() or 
+                    "rate" in error_str.lower() or
+                    "leaked" in error_str.lower()
+                )
+                
+                if is_recoverable:
+                    print(f"⚠ API Key #{self.current_key_index+1} error during streaming: {error_str[:100]}")
                     
                     # Try rotating to next key
                     if self._rotate_key():
@@ -150,7 +169,7 @@ class GeminiKeyRotator:
                         await asyncio.sleep(1)
                         continue
                     else:
-                        yield f"All API keys have hit rate limits. Please try again later."
+                        yield f"All API keys failed. Please check your API keys and try again."
                         return
                 else:
                     print(f"Gemini Streaming Error: {error_str}")
