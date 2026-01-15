@@ -1,0 +1,57 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Learning Resource",
+    "description": "Metadata for educational content.",
+    "type": "object",
+    "properties": {
+        "resource_id": {
+            "type": "string"
+        },
+        "title": {
+            "type": "string"
+        },
+        "url": {
+            "type": "string",
+            "format": "uri"
+        },
+        "source": {
+            "type": "string"
+        },
+        "type": {
+            "type": "string",
+            "enum": [
+                "Video",
+                "Course",
+                "Article",
+                "Repository",
+                "Interactive"
+            ]
+        },
+        "topics": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "difficulty": {
+            "type": "string"
+        },
+        "duration_minutes": {
+            "type": "integer"
+        },
+        "social_verified": {
+            "type": "boolean"
+        },
+        "rating": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 5
+        }
+    },
+    "required": [
+        "title",
+        "url",
+        "source",
+        "type"
+    ]
+}

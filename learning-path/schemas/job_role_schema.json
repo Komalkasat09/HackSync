@@ -1,0 +1,62 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Job Role Requirements",
+    "description": "Definition of a target role and its required skill matrix.",
+    "type": "object",
+    "properties": {
+        "role_id": {
+            "type": "string"
+        },
+        "title": {
+            "type": "string"
+        },
+        "level": {
+            "type": "string",
+            "enum": [
+                "Junior",
+                "Mid",
+                "Senior",
+                "Lead"
+            ]
+        },
+        "description": {
+            "type": "string"
+        },
+        "required_skills": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "skill_name": {
+                        "type": "string"
+                    },
+                    "min_proficiency": {
+                        "type": "string",
+                        "enum": [
+                            "Beginner",
+                            "Intermediate",
+                            "Advanced",
+                            "Expert"
+                        ]
+                    },
+                    "importance": {
+                        "type": "string",
+                        "enum": [
+                            "Critical",
+                            "Nice-to-have"
+                        ]
+                    }
+                },
+                "required": [
+                    "skill_name",
+                    "min_proficiency"
+                ]
+            }
+        }
+    },
+    "required": [
+        "role_id",
+        "title",
+        "required_skills"
+    ]
+}
