@@ -9,6 +9,8 @@ from learning_guide.routes import router as learning_router
 from interview_prep.routes import router as interview_router
 from user_profile.routes import router as profile_router
 from ai_resume_builder.routes import router as ai_resume_router
+from job_tracker.routes import router as job_tracker_router
+from job_tracker.scheduler import job_scheduler
 
 app = FastAPI(
     title="SkillSphere API",
@@ -20,10 +22,12 @@ app = FastAPI(
 @app.on_event("startup")
 async def startup_event():
     await connect_to_mongo()
+    job_scheduler.start()  # Start job scraping scheduler
 
 @app.on_event("shutdown")
 async def shutdown_event():
     await close_mongo_connection()
+    job_scheduler.shutdown()  # Stop scheduler gracefully
 
 # CORS middleware
 app.add_middleware(
@@ -41,6 +45,7 @@ app.include_router(ai_resume_router, prefix="", tags=["AI Resume Builder"])
 app.include_router(career_router, prefix="/api/career", tags=["Career Recommender"])
 app.include_router(learning_router, prefix="/api/learning", tags=["Learning Guide"])
 app.include_router(interview_router, prefix="/api/interview", tags=["Interview Prep"])
+app.include_router(job_tracker_router, prefix="/api/jobs", tags=["Job Tracker"])
 
 @app.get("/")
 async def root():

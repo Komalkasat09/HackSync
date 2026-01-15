@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # Tavily API (optional - for Udemy/Coursera search)
     TAVILY_API_KEY: Optional[str] = os.getenv("TAVILY_API_KEY", None)
     
+    # Apify API (for LinkedIn job scraping)
+    APIFY_API_KEY: Optional[str] = os.getenv("APIFY_API_KEY", None)
+    
     # API Configuration
     API_VERSION: str = "v1"
     DEBUG: bool = True

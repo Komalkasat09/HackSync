@@ -8,13 +8,14 @@ import {
   Target,        // Career Recommender
   FileText,      // Resume Builder
   BookOpen,      // Learning Guide
-  Briefcase,     // Interview Prep
+  Briefcase,     // Interview Prep & Jobs
   LogOut, 
   ShieldCheck,
   User,
   UserCircle,    // Your Profile
   Sparkles,      // AI Resume Builder
-  GitBranch      // AI Roadmap
+  GitBranch,     // AI Roadmap
+  BriefcaseBusiness  // Job Tracker
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -25,6 +26,7 @@ const menuItems = [
   { name: "AI Resume Builder", href: "/dashboard/ai-resume", icon: Sparkles, shortText: "AI Resume" },
   { name: "Learning Roadmap", href: "/dashboard/roadmap", icon: GitBranch, shortText: "Roadmap" },
   { name: "Career Recommender", href: "/dashboard/career", icon: Target, shortText: "Career" },
+  { name: "Job Opportunities", href: "/dashboard/jobs", icon: BriefcaseBusiness, shortText: "Jobs" },
   { name: "Interview Prep", href: "/dashboard/interview", icon: Briefcase, shortText: "Interview" },
 ];
 
