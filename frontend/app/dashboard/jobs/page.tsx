@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Briefcase, MapPin, TrendingUp, ExternalLink, Bookmark, CheckCircle, Filter, Building2, RefreshCw, Search, X, Award } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Briefcase, MapPin, TrendingUp, ExternalLink, Bookmark, CheckCircle, Filter, Building2, RefreshCw, Search, X, Award, FileText } from "lucide-react";
 
 interface Job {
   job_id: string;
@@ -26,6 +27,7 @@ interface JobMatch {
 }
 
 export default function JobsPage() {
+  const router = useRouter();
   const [jobs, setJobs] = useState<JobMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [userSkills, setUserSkills] = useState<string[]>([]);
@@ -72,13 +74,19 @@ export default function JobsPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      if (!response.ok) {
+        // Silently fail if endpoint is not available
+        return;
+      }
+
       const data = await response.json();
       if (data.success) {
         const saved = new Set(data.jobs.map((j: any) => j.job_id));
         setSavedJobs(saved);
       }
     } catch (error) {
-      console.error("Error fetching saved jobs:", error);
+      // Silently fail - saved jobs feature is optional
+      console.log("Saved jobs feature unavailable");
     }
   };
 
@@ -136,21 +144,31 @@ export default function JobsPage() {
   };
 
   const getMatchColor = (score: number) => {
-    if (score >= 80) return "text-green-600 bg-green-50 border-green-200";
-    if (score >= 60) return "text-blue-600 bg-blue-50 border-blue-200";
-    if (score >= 40) return "text-yellow-600 bg-yellow-50 border-yellow-200";
-    return "text-gray-600 bg-gray-50 border-gray-200";
+    if (score >= 80) return "text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700";
+    if (score >= 60) return "text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700";
+    if (score >= 40) return "text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700";
+    return "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700";
   };
 
   const getSourceBadge = (source: string) => {
     const colors: Record<string, string> = {
-      linkedin: "bg-blue-100 text-blue-800",
-      indeed: "bg-red-100 text-red-800",
-      internshala: "bg-purple-100 text-purple-800",
-      zip_recruiter: "bg-green-100 text-green-800",
-      glassdoor: "bg-orange-100 text-orange-800",
+      linkedin: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700",
+      indeed: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-700",
+      internshala: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700",
+      zip_recruiter: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-700",
+      glassdoor: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border border-orange-300 dark:border-orange-700",
     };
-    return colors[source] || "bg-gray-100 text-gray-800";
+    return colors[source] || "bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-700";
+  };
+
+  const handleApplyClick = (job: Job) => {
+    const params = new URLSearchParams({
+      job_id: job.job_id,
+      title: job.title,
+      company: job.company,
+      description: job.description,
+    });
+    router.push(`/dashboard/applications?${params.toString()}`);
   };
 
   // Extract unique locations and job types from jobs
@@ -432,12 +450,12 @@ export default function JobsPage() {
                           <span>{job.location}</span>
                         </div>
                         {job.job_type && (
-                          <span className="px-2 py-1 bg-muted rounded text-xs">
+                          <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium">
                             {job.job_type}
                           </span>
                         )}
                         {job.salary && (
-                          <span className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium">
+                          <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-full text-xs font-medium">
                             {job.salary}
                           </span>
                         )}
@@ -445,7 +463,7 @@ export default function JobsPage() {
                     </div>
 
                     {/* Match Score */}
-                    <div className={`flex flex-col items-center px-4 py-3 rounded-lg border-2 ${getMatchColor(match_score)}`}>
+                    <div className={`flex flex-col items-center px-4 py-3 rounded-lg border ${getMatchColor(match_score)}`}>
                       <TrendingUp className="w-5 h-5 mb-1" />
                       <span className="text-2xl font-bold">{Math.round(match_score)}</span>
                       <span className="text-xs">Match</span>
@@ -461,7 +479,7 @@ export default function JobsPage() {
                       {matched_skills.slice(0, 5).map((skill, idx) => (
                         <span
                           key={idx}
-                          className="px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded-full border border-blue-200"
+                          className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
                         >
                           ✓ {skill}
                         </span>
@@ -469,7 +487,7 @@ export default function JobsPage() {
                       {missing_skills.slice(0, 3).map((skill, idx) => (
                         <span
                           key={idx}
-                          className="px-3 py-1 bg-gray-50 text-gray-600 text-sm rounded-full border border-gray-200"
+                          className="px-3 py-1 bg-gray-100 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm font-medium"
                         >
                           {skill}
                         </span>
@@ -484,6 +502,13 @@ export default function JobsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleApplyClick(job)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-sm"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Apply
+                    </button>
                     <a
                       href={job.url}
                       target="_blank"
