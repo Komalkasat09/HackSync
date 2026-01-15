@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from typing import List, Dict, Any
-import google.generativeai as genai
+import google.genai as genai
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
@@ -25,13 +25,13 @@ class GeminiSmartScraper:
     """
     
     def __init__(self, api_key: str):
-        genai.configure(api_key=api_key)
+        self.client = genai.Client(api_key=api_key)
         try:
-            self.model = genai.GenerativeModel('gemini-pro')
-            logger.info("Gemini Smart Scraper initialized with gemini-pro")
+            self.model_name = 'models/gemini-2.5-flash'
+            logger.info("Gemini Smart Scraper initialized with gemini-2.5-flash")
         except Exception as e:
-            logger.warning(f"Failed to load gemini-pro: {e}")
-            self.model = None
+            logger.warning(f"Failed to initialize: {e}")
+            self.model_name = None
         
         # Reddit API setup
         self.reddit = None

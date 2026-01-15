@@ -1,0 +1,13 @@
+# See backend/.gitignore and frontend/.gitignore for specific ignores
+
+# Root level
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.local

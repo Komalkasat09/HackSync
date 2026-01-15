@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from typing import List, Dict, Any, Optional
-import google.generativeai as genai
+import google.genai as genai
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -25,8 +25,8 @@ class SkillAssessment:
 class GeminiService:
     def __init__(self, api_key: str):
         """Initialize Gemini AI service for personalized learning guidance."""
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = 'models/gemini-2.5-flash'
         logger.info("Gemini AI service initialized successfully")
 
     def explain_recommendation(self, user_profile: Dict, resource: Dict, gap_analysis: Dict) -> RecommendationExplanation:
@@ -61,7 +61,10 @@ class GeminiService:
         """
         
         try:
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
             result = json.loads(response.text)
             
             return RecommendationExplanation(
@@ -98,7 +101,10 @@ class GeminiService:
         """
         
         try:
-            response = self.model.generate_content(context_prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=context_prompt
+            )
             return response.text.strip()
         except Exception as e:
             logger.error(f"Error in mentor chat: {e}")
@@ -127,7 +133,10 @@ class GeminiService:
         """
         
         try:
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
             assessments_data = json.loads(response.text)
             
             return [
@@ -165,7 +174,10 @@ class GeminiService:
         """
         
         try:
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
             return json.loads(response.text)
         except Exception as e:
             logger.error(f"Error generating insights: {e}")
@@ -192,7 +204,10 @@ class GeminiService:
         """
         
         try:
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
             return response.text.strip()
         except Exception as e:
             logger.error(f"Error personalizing content summary: {e}")
@@ -220,7 +235,10 @@ class GeminiService:
         """
         
         try:
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
             return json.loads(response.text)
         except Exception as e:
             logger.error(f"Error generating project suggestions: {e}")
