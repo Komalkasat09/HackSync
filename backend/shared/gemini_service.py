@@ -4,8 +4,8 @@ Handles rate limits by cycling through multiple API keys
 """
 import os
 from typing import Optional, AsyncIterator
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+from google.generativeai import types
 import asyncio
 
 class GeminiKeyRotator:
@@ -22,19 +22,20 @@ class GeminiKeyRotator:
         
         if not self.api_keys:
             print("❌ No Gemini API keys found!")
-            self.client = None
+            self.model = None
             self.current_key_index = -1
             return
         
         self.current_key_index = 0
-        self.client = None
+        self.model = None
         self._initialize_client()
         print(f"✓ Gemini Service initialized with {len(self.api_keys)} API keys")
     
     def _initialize_client(self):
         """Initialize client with current API key"""
         if self.current_key_index >= 0 and self.current_key_index < len(self.api_keys):
-            self.client = genai.Client(api_key=self.api_keys[self.current_key_index])
+            genai.configure(api_key=self.api_keys[self.current_key_index])
+            self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
     
     def _rotate_key(self):
         """Rotate to next API key"""
@@ -51,13 +52,13 @@ class GeminiKeyRotator:
     async def generate_content(
         self, 
         prompt: str, 
-        model: str = "gemini-2.5-flash",
+        model: str = "gemini-2.0-flash-exp",
         max_retries: int = None
     ) -> str:
         """
         Generate content with automatic key rotation on rate limit errors
         """
-        if not self.client:
+        if not self.model:
             return "AI service unavailable. Please configure GEMINI_API_KEY."
         
         # Default max_retries to number of API keys
@@ -69,10 +70,7 @@ class GeminiKeyRotator:
         
         while attempts < max_retries:
             try:
-                response = await self.client.aio.models.generate_content(
-                    model=model,
-                    contents=prompt
-                )
+                response = await self.model.generate_content_async(prompt)
                 return response.text
                 
             except Exception as e:
@@ -113,13 +111,13 @@ class GeminiKeyRotator:
     async def generate_content_stream(
         self,
         prompt: str,
-        model: str = "gemini-2.5-flash",
+        model: str = "gemini-2.0-flash-exp",
         max_retries: int = None
     ) -> AsyncIterator[str]:
         """
         Stream content with automatic key rotation on rate limit errors
         """
-        if not self.client:
+        if not self.model:
             yield "AI service unavailable. Please configure GEMINI_API_KEY."
             return
         
@@ -131,17 +129,11 @@ class GeminiKeyRotator:
         
         while attempts < max_retries:
             try:
-                # Use generate_content_stream for streaming responses (await the coroutine)
-                stream = await self.client.aio.models.generate_content_stream(
-                    model=model,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_modalities=["TEXT"],
-                    )
-                )
+                # Use generate_content_stream for streaming responses
+                response = await self.model.generate_content_async(prompt, stream=True)
                 
                 # Stream the response
-                async for chunk in stream:
+                async for chunk in response:
                     if chunk.text:
                         yield chunk.text
                 

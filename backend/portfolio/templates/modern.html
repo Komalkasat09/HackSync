@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ name }} - Portfolio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --shiny-blue: #0a7fff;
+            --shiny-blue-light: #1a8fff;
+            --shiny-blue-dark: #0966d9;
+            --shiny-blue-glow: rgba(10, 127, 255, 0.4);
+            --background: #ffffff;
+            --foreground: #0a0a0a;
+            --card: rgba(255, 255, 255, 0.8);
+            --card-border: rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: var(--background);
+            color: var(--foreground);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 4rem 0;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--shiny-blue), var(--shiny-blue-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .contact-info {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--foreground);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .contact-item:hover {
+            border-color: var(--shiny-blue);
+            background: var(--shiny-blue);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Sections */
+        section {
+            margin: 3rem 0;
+            padding: 2rem 0;
+        }
+
+        h2 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            color: var(--foreground);
+            border-bottom: 2px solid var(--shiny-blue);
+            padding-bottom: 0.5rem;
+        }
+
+        /* Skills */
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .skill-card {
+            padding: 1rem;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .skill-card:hover {
+            border-color: var(--shiny-blue);
+            box-shadow: 0 4px 12px var(--shiny-blue-glow);
+            transform: translateY(-4px);
+        }
+
+        /* Experience & Education */
+        .timeline-item {
+            padding: 1.5rem;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item:hover {
+            border-color: var(--shiny-blue);
+            box-shadow: 0 4px 12px var(--shiny-blue-glow);
+        }
+
+        .timeline-item h3 {
+            font-size: 1.5rem;
+            color: var(--shiny-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-item .company {
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-item .date {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .timeline-item p {
+            color: #555;
+        }
+
+        /* Projects */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .project-card {
+            padding: 1.5rem;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .project-card:hover {
+            border-color: var(--shiny-blue);
+            box-shadow: 0 6px 20px var(--shiny-blue-glow);
+            transform: translateY(-4px);
+        }
+
+        .project-card h3 {
+            font-size: 1.25rem;
+            color: var(--shiny-blue);
+            margin-bottom: 0.75rem;
+        }
+
+        .project-card p {
+            color: #555;
+            margin-bottom: 1rem;
+        }
+
+        .project-tech {
+            color: #666;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .project-link {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: var(--shiny-blue);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .project-link:hover {
+            background: var(--shiny-blue-dark);
+            transform: scale(1.05);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            border-top: 1px solid var(--card-border);
+            color: #666;
+            margin-top: 4rem;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .contact-info {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .projects-grid,
+            .skills-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>{{ name }}</h1>
+            {% if location %}
+            <p class="subtitle">📍 {{ location }}</p>
+            {% endif %}
+            
+            <div class="contact-info">
+                {% if email %}
+                <a href="mailto:{{ email }}" class="contact-item">
+                    📧 {{ email }}
+                </a>
+                {% endif %}
+                
+                {% for link in links %}
+                    {% if link.type == 'github' %}
+                    <a href="{{ link.value }}" target="_blank" class="contact-item">
+                        🔗 GitHub
+                    </a>
+                    {% elif link.type == 'linkedin' %}
+                    <a href="{{ link.value }}" target="_blank" class="contact-item">
+                        💼 LinkedIn
+                    </a>
+                    {% elif link.type == 'website' %}
+                    <a href="{{ link.value }}" target="_blank" class="contact-item">
+                        🌐 Website
+                    </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </header>
+
+        <!-- Skills -->
+        {% if skills %}
+        <section id="skills">
+            <h2>🎯 Skills</h2>
+            <div class="skills-grid">
+                {% for skill in skills %}
+                <div class="skill-card">
+                    <strong>{{ skill.name }}</strong>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Experience -->
+        {% if experiences %}
+        <section id="experience">
+            <h2>💼 Experience</h2>
+            {% for exp in experiences %}
+            <div class="timeline-item">
+                <h3>{{ exp.title }}</h3>
+                <div class="company">{{ exp.company }}</div>
+                <div class="date">
+                    {{ exp.startDate }} - {% if exp.currentlyWorking %}Present{% else %}{{ exp.endDate }}{% endif %}
+                </div>
+                <p>{{ exp.description }}</p>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- Projects -->
+        {% if projects %}
+        <section id="projects">
+            <h2>🚀 Projects</h2>
+            <div class="projects-grid">
+                {% for project in projects %}
+                <div class="project-card">
+                    <h3>{{ project.name }}</h3>
+                    <p>{{ project.description }}</p>
+                    <div class="project-tech">
+                        <strong>Technologies:</strong> {{ project.technologies }}
+                    </div>
+                    {% if project.link %}
+                    <a href="{{ project.link }}" target="_blank" class="project-link">
+                        View Project →
+                    </a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Education -->
+        {% if education %}
+        <section id="education">
+            <h2>🎓 Education</h2>
+            {% for edu in education %}
+            <div class="timeline-item">
+                <h3>{{ edu.degree }}</h3>
+                <div class="company">{{ edu.institution }}</div>
+                <div class="date">{{ edu.year }}</div>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- Interests -->
+        {% if interests %}
+        <section id="interests">
+            <h2>✨ Interests</h2>
+            <div class="skills-grid">
+                {% for interest in interests %}
+                <div class="skill-card">
+                    {{ interest.name }}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Footer -->
+        <footer>
+            <p>© {{ name }} · Portfolio generated by SkillSphere</p>
+        </footer>
+    </div>
+</body>
+</html>
