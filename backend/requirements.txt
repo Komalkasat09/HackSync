@@ -9,3 +9,21 @@ python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
 pymongo
+
+# AI/ML Dependencies
+google-generativeai
+elevenlabs==2.30.0
+assemblyai==0.48.4
+
+# Learning Path Module Dependencies
+sentence-transformers
+torch
+numpy
+scikit-learn
+jsonschema
+spacy
+networkx
+requests
+beautifulsoup4
+youtube-search-python
+duckduckgo-search

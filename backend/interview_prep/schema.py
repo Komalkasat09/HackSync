@@ -37,3 +37,9 @@ class InterviewPrepResponse(BaseModel):
     feedback: Optional[InterviewFeedback] = None
     recommended_practice: List[str]
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class SubmitAnswerRequest(BaseModel):
+    session_id: str
+    question_id: str
+    user_answer: str
+    time_taken: Optional[int] = None

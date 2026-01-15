@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     API_VERSION: str = "v1"
     DEBUG: bool = True
     
+    # AI Configuration
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    ASSEMBLYAI_API_KEY: str = os.getenv("ASSEMBLYAI_API_KEY", "")
+    ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

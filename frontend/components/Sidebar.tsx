@@ -11,7 +11,8 @@ import {
   Briefcase,     // Interview Prep
   LogOut, 
   ShieldCheck,
-  User
+  User,
+  BrainCircuit   // Learning Path AI
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -21,6 +22,7 @@ const menuItems = [
   { name: "Career Recommender", href: "/dashboard/career", icon: Target, shortText: "Career" },
   { name: "Resume Builder", href: "/dashboard/resume", icon: FileText, shortText: "Resume" },
   { name: "Learning Guide", href: "/dashboard/learning", icon: BookOpen, shortText: "Learn" },
+  { name: "AI Learning Path", href: "/learning-path", icon: BrainCircuit, shortText: "Path" },
   { name: "Interview Prep", href: "/dashboard/interview", icon: Briefcase, shortText: "Interview" },
 ];
 
