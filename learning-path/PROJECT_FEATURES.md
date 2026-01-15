@@ -1,3 +1,4 @@
+ERROR:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8000): only one usage of each socket address (protocol/network address/port) is normally permitted
 # SkillAI Pathfinder - Project Features
 
 ## 1. Core Logic & Intelligence
