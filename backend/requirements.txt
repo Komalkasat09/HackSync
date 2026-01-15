@@ -1,7 +1,7 @@
-fastapi
+fastapi>=0.115.0
 uvicorn
 motor
-pydantic
+pydantic>=2.9.0
 email-validator
 pydantic-settings
 python-dotenv
@@ -12,7 +12,9 @@ pymongo
 PyPDF2
 google-genai
 yt-dlp
-httpx
+httpx>=0.28.1
 apscheduler
 python-jobspy
 jinja2
+numpy==1.26.3
+websockets>=13.0

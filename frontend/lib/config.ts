@@ -79,5 +79,10 @@ export const API_ENDPOINTS = {
   LEARNING: {
     GENERATE_ROADMAP: `${API_BASE_URL}/api/learning/generate-roadmap`,
   },
+  RESUME_ANALYSIS: {
+    ATS_CHECK: `${API_BASE_URL}/api/resume-analysis/ats-check`,
+    GAP_ANALYSIS: `${API_BASE_URL}/api/resume-analysis/gap-analysis`,
+    COMPREHENSIVE: `${API_BASE_URL}/api/resume-analysis/comprehensive-analysis`,
+  },
 } as const;
 

@@ -10,6 +10,7 @@ from interview_prep.routes import router as interview_router
 from interview_prep.voice_interview_routes import router as voice_interview_router
 from user_profile.routes import router as profile_router
 from ai_resume_builder.routes import router as ai_resume_router
+from ai_resume_analysis.routes import router as resume_analysis_router
 from job_tracker.routes import router as job_tracker_router
 from job_application.routes import router as job_application_router
 from job_tracker.scheduler import job_scheduler
@@ -45,6 +46,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="", tags=["Authentication"])
 app.include_router(profile_router, prefix="", tags=["User Profile"])
 app.include_router(ai_resume_router, prefix="", tags=["AI Resume Builder"])
+app.include_router(resume_analysis_router, prefix="/api/resume-analysis", tags=["AI Resume Analysis"])
 app.include_router(career_router, prefix="/api/career", tags=["Career Recommender"])
 app.include_router(learning_router, prefix="/api/learning", tags=["Learning Guide"])
 app.include_router(interview_router, prefix="/api/interview", tags=["Interview Prep"])

@@ -17,7 +17,8 @@ import {
   GitBranch,     // AI Roadmap
   BriefcaseBusiness,  // Job Tracker
   Globe,         // Portfolio
-  ClipboardList  // My Applications
+  ClipboardList,  // My Applications
+  FileSearch     // Resume Analysis
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -27,6 +28,7 @@ const menuItems = [
   { name: "Your Profile", href: "/dashboard/your-profile", icon: UserCircle, shortText: "Profile" },
   { name: "Portfolio", href: "/dashboard/portfolio", icon: Globe, shortText: "Portfolio" },
   { name: "AI Resume Builder", href: "/dashboard/ai-resume", icon: Sparkles, shortText: "AI Resume" },
+  { name: "Resume Analysis", href: "/dashboard/resume-analysis", icon: FileSearch, shortText: "Analysis" },
   { name: "Learning Roadmap", href: "/dashboard/roadmap", icon: GitBranch, shortText: "Roadmap" },
   { name: "Career Recommender", href: "/dashboard/career", icon: Target, shortText: "Career" },
   { name: "Job Opportunities", href: "/dashboard/jobs", icon: BriefcaseBusiness, shortText: "Jobs" },
