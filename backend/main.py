@@ -15,6 +15,8 @@ from job_application.routes import router as job_application_router
 from job_tracker.scheduler import job_scheduler
 from portfolio.routes import router as portfolio_router
 from dashboard.routes import router as dashboard_router
+from resume_analyzer.routes import router as resume_analyzer_router
+from cold_mail.routes import router as cold_mail_router
 
 app = FastAPI(
     title="SkillSphere API",
@@ -54,6 +56,8 @@ app.include_router(job_tracker_router, prefix="/api/jobs", tags=["Job Tracker"])
 app.include_router(portfolio_router, prefix="/api", tags=["Portfolio"])
 app.include_router(job_application_router, prefix="/api", tags=["Job Application"])
 app.include_router(dashboard_router, prefix="/api", tags=["Dashboard"])
+app.include_router(resume_analyzer_router, prefix="/api", tags=["Resume Analyzer"])
+app.include_router(cold_mail_router, prefix="/api", tags=["Cold Mail"])
 
 @app.get("/")
 async def root():

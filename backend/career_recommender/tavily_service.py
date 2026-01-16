@@ -14,11 +14,14 @@ class TavilyService:
         self.cache = {}  # Simple in-memory cache
         self.cache_duration = timedelta(hours=6)  # Cache for 6 hours
         
-    async def search_career_trends(self, skills: List[str], interests: List[str]) -> Dict:
+    async def search_career_trends(self, skills: List[str], interests: List[str], custom_query: Optional[str] = None) -> Dict:
         """
         Search for trending careers based on user skills and interests
         """
-        query = f"trending careers for {', '.join(skills[:3])} professionals in {', '.join(interests[:2])} industry 2026"
+        if custom_query:
+            query = custom_query
+        else:
+            query = f"trending careers for {', '.join(skills[:3])} professionals in {', '.join(interests[:2])} industry 2026"
         cache_key = f"trends_{hash(query)}"
         
         # Check cache

@@ -48,11 +48,14 @@ class Application(BaseModel):
     job_title: str
     company: str
     job_description: str
-    tailored_resume: AIResumeData
-    cover_letter: CoverLetter
+    tailored_resume: Optional[AIResumeData] = None  # Optional for cold mail
+    cover_letter: Optional[CoverLetter] = None  # Optional for cold mail
     created_at: datetime = datetime.utcnow()
     updated_at: datetime = datetime.utcnow()
     status: str = "draft"  # draft, submitted, archived
+    application_source: Optional[str] = None  # "job_application" or "cold_mail"
+    company_email: Optional[str] = None  # For cold mail applications
+    subject: Optional[str] = None  # For cold mail applications
 
 class ApplicationResponse(BaseModel):
     """Response with single application"""

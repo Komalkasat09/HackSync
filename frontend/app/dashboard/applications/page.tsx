@@ -85,6 +85,9 @@ interface Application {
   created_at: string;
   updated_at: string;
   status: string;
+  application_source?: string; // "job_application" or "cold_mail"
+  company_email?: string; // For cold mail applications
+  subject?: string; // For cold mail applications
 }
 
 export default function ApplicationsPage() {
@@ -329,6 +332,10 @@ export default function ApplicationsPage() {
   };
 
   const viewApplication = (app: Application) => {
+    // Cold mail applications don't have resume/cover letter, so skip viewing
+    if (app.application_source === "cold_mail") {
+      return;
+    }
     setJobData({
       job_id: app.job_id,
       title: app.job_title,
@@ -601,11 +608,11 @@ export default function ApplicationsPage() {
               >
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1">
                     <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                       <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                         app.status === "draft" 
                           ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
@@ -615,6 +622,11 @@ export default function ApplicationsPage() {
                       }`}>
                         {app.status}
                       </span>
+                      {app.application_source === "cold_mail" && (
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">
+                          via cold mail
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -634,15 +646,30 @@ export default function ApplicationsPage() {
                   <span>Updated: {new Date(app.updated_at).toLocaleDateString()}</span>
                 </div>
 
+                {/* Cold Mail Info */}
+                {app.application_source === "cold_mail" && (
+                  <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <div className="text-sm text-purple-700 dark:text-purple-300">
+                      <div className="font-medium mb-1">Email Details:</div>
+                      <div className="text-xs">
+                        <div>To: {app.company_email || "N/A"}</div>
+                        {app.subject && <div className="mt-1">Subject: {app.subject}</div>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => viewApplication(app)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                  >
-                    <Eye size={16} />
-                    View
-                  </button>
+                  {app.application_source !== "cold_mail" && (
+                    <button
+                      onClick={() => viewApplication(app)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      <Eye size={16} />
+                      View
+                    </button>
+                  )}
                   <button
                     onClick={() => deleteApplication(app.job_id)}
                     className="px-4 py-2 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-500/20 transition-colors"

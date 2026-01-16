@@ -12,6 +12,7 @@ from .schema import (
 from .application_service import generate_tailored_application
 from datetime import datetime
 from bson import ObjectId
+from typing import Dict, Any
 
 router = APIRouter(prefix="/job-application", tags=["job_application"])
 
@@ -137,36 +138,83 @@ async def save_application(
 
 @router.get("/my-applications", response_model=ApplicationsListResponse)
 async def get_my_applications(
-    limit: int = 10,
+    limit: int = 50,
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Get all applications for the current user.
+    Get all applications for the current user (both job applications and cold mail applications).
     """
     try:
         # Get database
         db = await get_database()
         user_id = str(current_user["_id"])
         
-        # Fetch user's applications
-        cursor = db.job_applications.find(
-            {"user_id": user_id}
-        ).sort("updated_at", -1).limit(limit)
+        all_applications = []
         
-        applications = []
-        async for app in cursor:
+        # Fetch job applications
+        job_apps_cursor = db.job_applications.find(
+            {"user_id": user_id}
+        ).sort("updated_at", -1)
+        
+        async for app in job_apps_cursor:
             app.pop("_id", None)
-            applications.append(Application(**app))
+            app["application_source"] = "job_application"  # Mark as job application
+            all_applications.append(app)
+        
+        # Fetch cold mail applications
+        cold_mail_cursor = db.company_applications.find(
+            {"user_id": user_id, "status": "sent"}
+        ).sort("sent_at", -1)
+        
+        async for app in cold_mail_cursor:
+            app.pop("_id", None)
+            # Convert cold mail application to Application-like format
+            application = {
+                "user_id": app.get("user_id"),
+                "job_id": f"cold_mail_{app.get('company_domain', 'unknown')}",
+                "job_title": "Cold Mail Application",
+                "company": app.get("company_name", "Unknown Company"),
+                "job_description": f"Cold email sent to {app.get('company_email', 'N/A')}",
+                "tailored_resume": None,  # Cold mail doesn't have tailored resume
+                "cover_letter": None,  # Cold mail doesn't have cover letter
+                "created_at": app.get("sent_at"),
+                "updated_at": app.get("sent_at"),
+                "status": "submitted",  # Cold mail applications are considered submitted
+                "application_source": "cold_mail",  # Mark as cold mail
+                "company_email": app.get("company_email"),
+                "subject": app.get("subject"),
+            }
+            all_applications.append(application)
+        
+        # Sort all applications by date (most recent first)
+        all_applications.sort(key=lambda x: x.get("updated_at") or x.get("created_at") or datetime.min, reverse=True)
+        
+        # Limit results
+        applications = all_applications[:limit]
+        
+        # Convert to Application objects (with optional fields for cold mail)
+        formatted_applications = []
+        for app in applications:
+            try:
+                # Application schema now supports optional fields, so we can pass None for cold mail
+                formatted_applications.append(Application(**app))
+            except Exception as e:
+                print(f"Error formatting application: {e}")
+                import traceback
+                traceback.print_exc()
+                continue
         
         return ApplicationsListResponse(
             success=True,
-            applications=applications,
-            total=len(applications),
+            applications=formatted_applications,
+            total=len(formatted_applications),
             message="Applications fetched successfully"
         )
         
     except Exception as e:
         print(f"Error fetching applications: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to fetch applications: {str(e)}")
 
 @router.delete("/delete/{job_id}")

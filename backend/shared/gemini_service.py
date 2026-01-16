@@ -10,12 +10,14 @@ import asyncio
 
 class GeminiKeyRotator:
     def __init__(self):
-        # Load all available API keys
+        # Load all available API keys (all 5 keys)
         self.api_keys = [
             os.getenv("GEMINI_API_KEY_1"),
             os.getenv("GEMINI_API_KEY_2"),
             os.getenv("GEMINI_API_KEY_3"),
-            os.getenv("GEMINI_API_KEY"),
+            os.getenv("GEMINI_API_KEY_4"),
+            os.getenv("GEMINI_API_KEY_5"),
+            os.getenv("GEMINI_API_KEY"),  # Fallback to main key
         ]
         # Filter out None values
         self.api_keys = [key for key in self.api_keys if key]
