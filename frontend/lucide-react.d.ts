@@ -1,0 +1,76 @@
+declare module 'lucide-react' {
+  import React from 'react';
+  
+  interface IconProps extends React.SVGProps<SVGSVGElement> {
+    size?: number | string;
+    color?: string;
+    strokeWidth?: number | string;
+    absoluteStrokeWidth?: boolean;
+  }
+  
+  export const AlertCircle: React.FC<IconProps>;
+  export const ArrowDown: React.FC<IconProps>;
+  export const ArrowLeft: React.FC<IconProps>;
+  export const ArrowRight: React.FC<IconProps>;
+  export const ArrowUp: React.FC<IconProps>;
+  export const Bell: React.FC<IconProps>;
+  export const Calendar: React.FC<IconProps>;
+  export const Check: React.FC<IconProps>;
+  export const CheckCircle: React.FC<IconProps>;
+  export const CheckCircle2: React.FC<IconProps>;
+  export const ChevronDown: React.FC<IconProps>;
+  export const ChevronLeft: React.FC<IconProps>;
+  export const ChevronRight: React.FC<IconProps>;
+  export const ChevronUp: React.FC<IconProps>;
+  export const Clock: React.FC<IconProps>;
+  export const Code: React.FC<IconProps>;
+  export const Copy: React.FC<IconProps>;
+  export const Download: React.FC<IconProps>;
+  export const File: React.FC<IconProps>;
+  export const FileText: React.FC<IconProps>;
+  export const FileSearch: React.FC<IconProps>;
+  export const Home: React.FC<IconProps>;
+  export const LogOut: React.FC<IconProps>;
+  export const Menu: React.FC<IconProps>;
+  export const MessageCircle: React.FC<IconProps>;
+  export const Moon: React.FC<IconProps>;
+  export const MoreVertical: React.FC<IconProps>;
+  export const Plus: React.FC<IconProps>;
+  export const Search: React.FC<IconProps>;
+  export const Settings: React.FC<IconProps>;
+  export const Sun: React.FC<IconProps>;
+  export const User: React.FC<IconProps>;
+  export const X: React.FC<IconProps>;
+  export const Sparkles: React.FC<IconProps>;
+  export const ZoomIn: React.FC<IconProps>;
+  export const ZoomOut: React.FC<IconProps>;
+  export const Briefcase: React.FC<IconProps>;
+  export const Zap: React.FC<IconProps>;
+  export const Target: React.FC<IconProps>;
+  export const TrendingUp: React.FC<IconProps>;
+  export const BookOpen: React.FC<IconProps>;
+  export const Mic: React.FC<IconProps>;
+  export const Volume2: React.FC<IconProps>;
+  export const Play: React.FC<IconProps>;
+  export const Pause: React.FC<IconProps>;
+  export const Stop: React.FC<IconProps>;
+  export const Send: React.FC<IconProps>;
+  export const Eye: React.FC<IconProps>;
+  export const EyeOff: React.FC<IconProps>;
+  export const Lock: React.FC<IconProps>;
+  export const Unlock: React.FC<IconProps>;
+  export const AlertTriangle: React.FC<IconProps>;
+  export const Info: React.FC<IconProps>;
+  export const Link: React.FC<IconProps>;
+  export const Github: React.FC<IconProps>;
+  export const Linkedin: React.FC<IconProps>;
+  export const Globe: React.FC<IconProps>;
+  export const Loader: React.FC<IconProps>;
+  export const Loader2: React.FC<IconProps>;
+  export const Trash2: React.FC<IconProps>;
+  export const Edit: React.FC<IconProps>;
+  export const Share2: React.FC<IconProps>;
+  export const ExternalLink: React.FC<IconProps>;
+  export const Upload: React.FC<IconProps>;
+  export const XCircle: React.FC<IconProps>;
+}

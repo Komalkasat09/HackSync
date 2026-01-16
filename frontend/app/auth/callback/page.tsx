@@ -13,7 +13,11 @@ export default function AuthCallbackPage() {
     const handleCallback = async () => {
       try {
         // Get the session from Supabase
-        const { data: { session }, error: sessionError } = await supabase?.auth.getSession();
+        if (!supabase) {
+          throw new Error("Supabase client not initialized");
+        }
+        
+        const { data: { session }, error: sessionError } = await (supabase as any).auth.getSession();
         
         if (sessionError) {
           throw sessionError;
@@ -24,7 +28,7 @@ export default function AuthCallbackPage() {
         }
 
         // Get user info from Supabase
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const { data: { user }, error: userError } = await (supabase as any).auth.getUser();
         
         if (userError || !user) {
           throw new Error("Could not get user information");
